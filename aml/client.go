@@ -1,41 +1,103 @@
 package aml
 
 import (
-	"context"
 	"fmt"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"go.uber.org/zap"
+	"io/ioutil"
+	"net/http"
+)
+
+const (
+	DefaultAmlOauthScope string = "https://management.azure.com/.default"
 )
 
 type Client struct {
-	MsalClient confidential.Client
-	logger     *zap.SugaredLogger
+	workspaceHttpClient *WorkspaceHttpClient
+	logger              *zap.SugaredLogger
+	config              ClientConfig
 }
 
-func (c Client) getJwt() (string, error) {
-	scopes := []string{DefaultAmlOauthScope}
-	c.logger.Debug("Using cached JWT silently...")
-	authResult, err := c.MsalClient.AcquireTokenSilent(context.Background(), scopes)
-	if err != nil {
-		c.logger.Debug("Could not acquire JWT silently, now acquiring it with Client Credential flow...")
-		authResult, err = c.MsalClient.AcquireTokenByCredential(context.Background(), scopes)
-		c.logger.Debug("JWT acquired")
-	}
-	return authResult.AccessToken, err
+type ClientConfig struct {
+	ClientId          string
+	ClientSecret      string
+	TenantId          string
+	SubscriptionId    string
+	ResourceGroupName string
+	WorkspaceName     string
 }
 
-func NewClient(clientId string, clientSecret string, tenantId string) (*Client, error) {
-	credential, err := confidential.NewCredFromSecret(clientSecret)
+func NewClient(config ClientConfig, debug bool) (*Client, error) {
+	credential, err := confidential.NewCredFromSecret(config.ClientSecret)
 	if err != nil {
 		return &Client{}, err
 	}
 
-	authority := fmt.Sprintf("https://login.microsoftonline.com/%s", tenantId)
-	client, err := confidential.New(clientId, credential, confidential.WithAuthority(authority))
+	authority := fmt.Sprintf("https://login.microsoftonline.com/%s", config.TenantId)
+	msalClient, err := confidential.New(config.ClientId, credential, confidential.WithAuthority(authority))
 	if err != nil {
 		return &Client{}, err
 	}
 
-	logger, err := zap.NewDevelopment()
-	return &Client{MsalClient: client, logger: logger.Sugar()}, nil
+	var logger *zap.Logger
+	if debug == true {
+		logger, _ = zap.NewDevelopment()
+	} else {
+		logger, _ = zap.NewProduction()
+	}
+
+	sugarLogger := logger.Sugar()
+	client := &Client{
+		workspaceHttpClient: newWorkspaceHttpClient(
+			sugarLogger,
+			msalClient,
+			config.SubscriptionId,
+			config.ResourceGroupName,
+			config.WorkspaceName,
+		),
+		logger: sugarLogger,
+	}
+	return client, nil
+}
+
+func (c *Client) GetDatastores() ([]Datastore, error) {
+	resp, err := c.workspaceHttpClient.doGet("datastores")
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	return toDatastoreArray(body), err
+}
+
+func (c *Client) GetDatastore(name string) (*Datastore, error) {
+	path := fmt.Sprintf("datastores/%s", name)
+	resp, err := c.workspaceHttpClient.doGet(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ResourceNotFoundError{"datastore", "name"}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	return toDatastore(body), err
 }

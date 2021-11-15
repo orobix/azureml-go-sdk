@@ -5,7 +5,25 @@ import (
 	"testing"
 )
 
-func TestSample(t *testing.T) {
+func TestNewClientEmptyConfig(t *testing.T) {
 	a := assert.New(t)
-	a.Nil(nil)
+
+	client, err := NewClient(ClientConfig{}, false)
+
+	a.NotNil(err)
+	a.Empty(client)
+}
+
+func TestNewClientInvalidAuth(t *testing.T) {
+	a := assert.New(t)
+
+	config := ClientConfig{
+		ClientId:     "invalid",
+		ClientSecret: "invalid",
+		TenantId:     "invalid",
+	}
+	client, err := NewClient(config, false)
+
+	a.Nil(err)
+	a.NotEmpty(client)
 }
