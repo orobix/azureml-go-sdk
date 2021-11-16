@@ -26,7 +26,7 @@ type HttpClient struct {
 	httpClient        *http.Client
 }
 
-func newWorkspaceHttpClient(
+func newHttpClient(
 	logger *zap.SugaredLogger,
 	msalClient confidential.Client,
 	subscriptionId,

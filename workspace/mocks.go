@@ -11,8 +11,8 @@ type mockedHttpClient struct {
 	err            error
 }
 
-func NewMockedHttpClient(responseStatusCode int, responseBody string, err error) *mockedHttpClient {
-	bodyReader := ioutil.NopCloser(bytes.NewReader([]byte(responseBody)))
+func newMockedHttpClient(responseStatusCode int, responseBody []byte, err error) *mockedHttpClient {
+	bodyReader := ioutil.NopCloser(bytes.NewReader(responseBody))
 	mockedResponse := http.Response{
 		StatusCode: responseStatusCode,
 		Body:       bodyReader,

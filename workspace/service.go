@@ -9,9 +9,9 @@ import (
 )
 
 type Workspace struct {
-	workspaceHttpClient *HttpClient
-	logger              *zap.SugaredLogger
-	config              Config
+	httpClient HttpClientAPI
+	logger     *zap.SugaredLogger
+	config     Config
 }
 
 type Config struct {
@@ -30,10 +30,7 @@ func New(config Config, debug bool) (*Workspace, error) {
 	} else {
 		logger, _ = zap.NewProduction()
 	}
-	return newClient(&config, logger.Sugar())
-}
 
-func newClient(config *Config, logger *zap.SugaredLogger) (*Workspace, error) {
 	credential, err := confidential.NewCredFromSecret(config.ClientSecret)
 	if err != nil {
 		return &Workspace{}, err
@@ -45,21 +42,27 @@ func newClient(config *Config, logger *zap.SugaredLogger) (*Workspace, error) {
 		return &Workspace{}, err
 	}
 
+	httpClient := newHttpClient(
+		logger.Sugar(),
+		msalClient,
+		config.SubscriptionId,
+		config.ResourceGroupName,
+		config.WorkspaceName,
+	)
+
+	return newClient(httpClient, logger.Sugar())
+}
+
+func newClient(httpClient HttpClientAPI, logger *zap.SugaredLogger) (*Workspace, error) {
 	client := &Workspace{
-		workspaceHttpClient: newWorkspaceHttpClient(
-			logger,
-			msalClient,
-			config.SubscriptionId,
-			config.ResourceGroupName,
-			config.WorkspaceName,
-		),
-		logger: logger,
+		httpClient: httpClient,
+		logger:     logger,
 	}
 	return client, nil
 }
 
 func (c *Workspace) GetDatastores() ([]Datastore, error) {
-	resp, err := c.workspaceHttpClient.doGet("datastores")
+	resp, err := c.httpClient.doGet("datastores")
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +82,7 @@ func (c *Workspace) GetDatastores() ([]Datastore, error) {
 
 func (c *Workspace) GetDatastore(name string) (*Datastore, error) {
 	path := fmt.Sprintf("datastores/%s", name)
-	resp, err := c.workspaceHttpClient.doGet(path)
+	resp, err := c.httpClient.doGet(path)
 	if err != nil {
 		return nil, err
 	}

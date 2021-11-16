@@ -1,30 +1,15 @@
 package workspace
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
-	"log"
-	"os"
 	"testing"
 	"time"
 )
 
-const (
-	exampleRespsDir = "assets"
-)
-
-func getExampleResp(fileName string) []byte {
-	file, err := os.ReadFile(fmt.Sprintf("%s/%s", exampleRespsDir, fileName))
-	if err != nil {
-		log.Fatalf("Could not load example resp \"%s\"", fileName)
-	}
-	return file
-}
-
 func TestToDatastore(t *testing.T) {
 	a := assert.New(t)
 
-	resp := getExampleResp("example_resp_get_datastore.json")
+	resp := loadExampleResp("example_resp_get_datastore.json")
 	datastore := toDatastore(resp)
 	a.NotEmpty(datastore)
 	a.Equal("id-1", datastore.Id)
@@ -42,7 +27,7 @@ func TestToDatastore(t *testing.T) {
 func TestToDatastoreArray(t *testing.T) {
 	a := assert.New(t)
 
-	resp := getExampleResp("example_resp_get_datastore_list.json")
+	resp := loadExampleResp("example_resp_get_datastore_list.json")
 	datastoreArray := toDatastoreArray(resp)
 	a.NotEmpty(datastoreArray)
 	a.Len(datastoreArray, 2)
@@ -62,7 +47,7 @@ func TestToDatastoreArray(t *testing.T) {
 
 func TestToDatastoreArrayEmptyResp(t *testing.T) {
 	a := assert.New(t)
-	resp := getExampleResp("example_resp_get_empty_list.json")
+	resp := loadExampleResp("example_resp_get_empty_list.json")
 
 	datastoreArray := toDatastoreArray(resp)
 	a.Empty(datastoreArray)
