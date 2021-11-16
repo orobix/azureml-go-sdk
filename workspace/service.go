@@ -9,7 +9,7 @@ import (
 )
 
 type Workspace struct {
-	workspaceHttpClient *WorkspaceHttpClient
+	workspaceHttpClient *HttpClient
 	logger              *zap.SugaredLogger
 	config              Config
 }

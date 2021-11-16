@@ -13,10 +13,11 @@ const (
 	amlWorkspaceApiBaseUrl = "https://management.azure.com/subscriptions/%s/resourceGroups/%s/providers/Microsoft.MachineLearningServices/workspaces/%s"
 )
 
-type WorkspaceHttpClientAPI interface {
+type HttpClientAPI interface {
+	doGet(path string) (*http.Response, error)
 }
 
-type WorkspaceHttpClient struct {
+type HttpClient struct {
 	logger            *zap.SugaredLogger
 	msalClient        confidential.Client
 	subscriptionId    string
@@ -30,8 +31,8 @@ func newWorkspaceHttpClient(
 	msalClient confidential.Client,
 	subscriptionId,
 	resourceGroupName,
-	workspaceName string) *WorkspaceHttpClient {
-	return &WorkspaceHttpClient{
+	workspaceName string) *HttpClient {
+	return &HttpClient{
 		logger:            logger,
 		msalClient:        msalClient,
 		subscriptionId:    subscriptionId,
@@ -41,7 +42,7 @@ func newWorkspaceHttpClient(
 	}
 }
 
-func (c WorkspaceHttpClient) getJwt() (string, error) {
+func (c HttpClient) getJwt() (string, error) {
 	scopes := []string{DefaultAmlOauthScope}
 	c.logger.Debug("Using cached JWT silently...")
 	authResult, err := c.msalClient.AcquireTokenSilent(context.Background(), scopes)
@@ -53,11 +54,11 @@ func (c WorkspaceHttpClient) getJwt() (string, error) {
 	return authResult.AccessToken, err
 }
 
-func (c *WorkspaceHttpClient) getWorkspaceApiBaseUrl() string {
+func (c *HttpClient) getWorkspaceApiBaseUrl() string {
 	return fmt.Sprintf(amlWorkspaceApiBaseUrl, c.subscriptionId, c.resourceGroupName, c.workspaceName)
 }
 
-func (c *WorkspaceHttpClient) newGetRequest(url string) (*http.Request, error) {
+func (c *HttpClient) newGetRequest(url string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return req, err
@@ -79,7 +80,7 @@ func (c *WorkspaceHttpClient) newGetRequest(url string) (*http.Request, error) {
 	return req, err
 }
 
-func (c *WorkspaceHttpClient) doGet(path string) (*http.Response, error) {
+func (c *HttpClient) doGet(path string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s", c.getWorkspaceApiBaseUrl(), path)
 	request, err := c.newGetRequest(url)
 	if err != nil {
