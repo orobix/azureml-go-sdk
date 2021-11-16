@@ -1,4 +1,4 @@
-package aml
+package workspace
 
 import (
 	"context"
@@ -12,6 +12,9 @@ const (
 	amlApiVersion          = "2021-03-01-preview"
 	amlWorkspaceApiBaseUrl = "https://management.azure.com/subscriptions/%s/resourceGroups/%s/providers/Microsoft.MachineLearningServices/workspaces/%s"
 )
+
+type WorkspaceHttpClientAPI interface {
+}
 
 type WorkspaceHttpClient struct {
 	logger            *zap.SugaredLogger

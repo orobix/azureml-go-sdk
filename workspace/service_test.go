@@ -1,4 +1,4 @@
-package aml
+package workspace
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -8,7 +8,7 @@ import (
 func TestNewClientEmptyConfig(t *testing.T) {
 	a := assert.New(t)
 
-	client, err := NewClient(ClientConfig{}, false)
+	client, err := New(Config{}, false)
 
 	a.NotNil(err)
 	a.Empty(client)
@@ -17,12 +17,12 @@ func TestNewClientEmptyConfig(t *testing.T) {
 func TestNewClientInvalidAuth(t *testing.T) {
 	a := assert.New(t)
 
-	config := ClientConfig{
+	config := Config{
 		ClientId:     "invalid",
 		ClientSecret: "invalid",
 		TenantId:     "invalid",
 	}
-	client, err := NewClient(config, false)
+	client, err := New(config, false)
 
 	a.Nil(err)
 	a.NotEmpty(client)

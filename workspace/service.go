@@ -1,4 +1,4 @@
-package aml
+package workspace
 
 import (
 	"fmt"
@@ -8,17 +8,13 @@ import (
 	"net/http"
 )
 
-const (
-	DefaultAmlOauthScope string = "https://management.azure.com/.default"
-)
-
-type Client struct {
+type Workspace struct {
 	workspaceHttpClient *WorkspaceHttpClient
 	logger              *zap.SugaredLogger
-	config              ClientConfig
+	config              Config
 }
 
-type ClientConfig struct {
+type Config struct {
 	ClientId          string
 	ClientSecret      string
 	TenantId          string
@@ -27,40 +23,42 @@ type ClientConfig struct {
 	WorkspaceName     string
 }
 
-func NewClient(config ClientConfig, debug bool) (*Client, error) {
-	credential, err := confidential.NewCredFromSecret(config.ClientSecret)
-	if err != nil {
-		return &Client{}, err
-	}
-
-	authority := fmt.Sprintf("https://login.microsoftonline.com/%s", config.TenantId)
-	msalClient, err := confidential.New(config.ClientId, credential, confidential.WithAuthority(authority))
-	if err != nil {
-		return &Client{}, err
-	}
-
+func New(config Config, debug bool) (*Workspace, error) {
 	var logger *zap.Logger
 	if debug == true {
 		logger, _ = zap.NewDevelopment()
 	} else {
 		logger, _ = zap.NewProduction()
 	}
+	return newClient(&config, logger.Sugar())
+}
 
-	sugarLogger := logger.Sugar()
-	client := &Client{
+func newClient(config *Config, logger *zap.SugaredLogger) (*Workspace, error) {
+	credential, err := confidential.NewCredFromSecret(config.ClientSecret)
+	if err != nil {
+		return &Workspace{}, err
+	}
+
+	authority := fmt.Sprintf("https://login.microsoftonline.com/%s", config.TenantId)
+	msalClient, err := confidential.New(config.ClientId, credential, confidential.WithAuthority(authority))
+	if err != nil {
+		return &Workspace{}, err
+	}
+
+	client := &Workspace{
 		workspaceHttpClient: newWorkspaceHttpClient(
-			sugarLogger,
+			logger,
 			msalClient,
 			config.SubscriptionId,
 			config.ResourceGroupName,
 			config.WorkspaceName,
 		),
-		logger: sugarLogger,
+		logger: logger,
 	}
 	return client, nil
 }
 
-func (c *Client) GetDatastores() ([]Datastore, error) {
+func (c *Workspace) GetDatastores() ([]Datastore, error) {
 	resp, err := c.workspaceHttpClient.doGet("datastores")
 	if err != nil {
 		return nil, err
@@ -79,7 +77,7 @@ func (c *Client) GetDatastores() ([]Datastore, error) {
 	return toDatastoreArray(body), err
 }
 
-func (c *Client) GetDatastore(name string) (*Datastore, error) {
+func (c *Workspace) GetDatastore(name string) (*Datastore, error) {
 	path := fmt.Sprintf("datastores/%s", name)
 	resp, err := c.workspaceHttpClient.doGet(path)
 	if err != nil {
