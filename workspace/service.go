@@ -74,7 +74,7 @@ func (c *Workspace) GetDatastores() ([]Datastore, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, HttpResponseError{resp.StatusCode, string(body)}
+		return nil, &HttpResponseError{resp.StatusCode, string(body)}
 	}
 
 	return toDatastoreArray(body), err
@@ -94,10 +94,10 @@ func (c *Workspace) GetDatastore(name string) (*Datastore, error) {
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, ResourceNotFoundError{"datastore", "name"}
+		return nil, &ResourceNotFoundError{"datastore", name}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, HttpResponseError{resp.StatusCode, string(body)}
+		return nil, &HttpResponseError{resp.StatusCode, string(body)}
 	}
 
 	return toDatastore(body), err
