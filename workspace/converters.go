@@ -25,7 +25,6 @@ func toDatastoreArray(json []byte) []Datastore {
 	for i, jsonDatastore := range jsonDatastoreArray {
 		datastore := toDatastore([]byte(jsonDatastore.Raw))
 		datastoreSlice[i] = *datastore
-		datastore.Id = "pippo"
 		fmt.Println(datastore)
 	}
 	return datastoreSlice
