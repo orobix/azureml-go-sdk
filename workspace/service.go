@@ -125,3 +125,7 @@ func (c *Workspace) DeleteDatastore(name string) error {
 	}
 	return nil
 }
+
+//func (c *Workspace) CreateOrUpdateDatastore() (*Datastore, error) {
+//
+//}
