@@ -23,3 +23,7 @@ func newMockedHttpClient(responseStatusCode int, responseBody []byte, err error)
 func (m *mockedHttpClient) doGet(path string) (*http.Response, error) {
 	return &m.mockedResponse, m.err
 }
+
+func (m *mockedHttpClient) doDelete(path string) (*http.Response, error) {
+	return &m.mockedResponse, m.err
+}

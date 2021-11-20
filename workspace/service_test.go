@@ -197,3 +197,54 @@ func TestWorkspace_GetDatastores(t *testing.T) {
 		a.Equal(tc.getDatastoreError, err, tc.description)
 	}
 }
+
+func TestWorkspace_DeleteDatastore(t *testing.T) {
+	a := assert.New(t)
+	testCases := []struct {
+		description        string
+		datastoreName      string
+		responseStatusCode int
+		httpClientError    error // error returned by each call of the Http Client
+		expectedError      error
+	}{
+		{
+			"HTTP 200 OK",
+			"foo",
+			http.StatusOK,
+			nil,
+			nil,
+		},
+		{
+			"HTTP 404 - Datastore not found",
+			"foo",
+			http.StatusNotFound,
+			nil,
+			&ResourceNotFoundError{"datastore", "foo"},
+		},
+		{
+			"HTTP 500 - AzureML Internal error",
+			"foo",
+			http.StatusInternalServerError,
+			nil,
+			&HttpResponseError{http.StatusInternalServerError, ""},
+		},
+		{
+			"HTTP Client error",
+			"foo",
+			http.StatusOK,
+			&exec.Error{"", nil},
+			&exec.Error{"", nil},
+		},
+	}
+
+	for _, tc := range testCases {
+		httpClient := newMockedHttpClient(
+			tc.responseStatusCode,
+			[]byte(""),
+			tc.httpClientError,
+		)
+		workspace, _ := newClient(httpClient, &zap.SugaredLogger{})
+		err := workspace.DeleteDatastore(tc.datastoreName)
+		a.Equal(tc.expectedError, err, tc.description)
+	}
+}

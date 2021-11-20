@@ -15,6 +15,8 @@ const (
 
 type HttpClientAPI interface {
 	doGet(path string) (*http.Response, error)
+
+	doDelete(path string) (*http.Response, error)
 }
 
 type HttpClient struct {
@@ -58,8 +60,8 @@ func (c *HttpClient) getWorkspaceApiBaseUrl() string {
 	return fmt.Sprintf(amlWorkspaceApiBaseUrl, c.subscriptionId, c.resourceGroupName, c.workspaceName)
 }
 
-func (c *HttpClient) newGetRequest(url string) (*http.Request, error) {
-	req, err := http.NewRequest("GET", url, nil)
+func (c *HttpClient) newRequest(method string, url string) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return req, err
 	}
@@ -82,7 +84,17 @@ func (c *HttpClient) newGetRequest(url string) (*http.Request, error) {
 
 func (c *HttpClient) doGet(path string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s", c.getWorkspaceApiBaseUrl(), path)
-	request, err := c.newGetRequest(url)
+	request, err := c.newRequest("GET", url)
+	if err != nil {
+		return nil, err
+	}
+	c.logger.Infof("GET > %s", url)
+	return c.httpClient.Do(request)
+}
+
+func (c *HttpClient) doDelete(path string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/%s", c.getWorkspaceApiBaseUrl(), path)
+	request, err := c.newRequest("DELETE", url)
 	if err != nil {
 		return nil, err
 	}

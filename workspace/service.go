@@ -102,3 +102,26 @@ func (c *Workspace) GetDatastore(name string) (*Datastore, error) {
 
 	return toDatastore(body), err
 }
+
+func (c *Workspace) DeleteDatastore(name string) error {
+	path := fmt.Sprintf("datastores/%s", name)
+	resp, err := c.httpClient.doDelete(path)
+
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &ResourceNotFoundError{"datastore", name}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return &HttpResponseError{resp.StatusCode, string(body)}
+	}
+	return nil
+}
