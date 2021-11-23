@@ -1,4 +1,4 @@
-module github.com/telemaco019/azureml-workspace-go-sdk
+module github.com/Telemaco019/azureml-go-sdk
 
 go 1.17
 
