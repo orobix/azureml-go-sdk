@@ -114,8 +114,9 @@ func TestWorkspace_GetDatastore(t *testing.T) {
 			loadExampleResp(tc.responseExampleName),
 			tc.httpClientError,
 		)
-		workspace, _ := newClient(httpClient, &zap.SugaredLogger{})
-		datastore, err := workspace.GetDatastore(tc.datastoreName)
+		httpClientBuilder := MockedHttpClientBuilder{httpClient: httpClient}
+		workspace := newWorkspace(httpClientBuilder, &zap.Logger{})
+		datastore, err := workspace.GetDatastore("", "", tc.datastoreName)
 		a.Equal(tc.expected, datastore, tc.description)
 		a.Equal(tc.getDatastoreError, err, tc.description)
 	}
@@ -222,8 +223,9 @@ func TestWorkspace_GetDatastores(t *testing.T) {
 			loadExampleResp(tc.responseExampleName),
 			tc.httpClientError,
 		)
-		workspace, _ := newClient(httpClient, &zap.SugaredLogger{})
-		datastore, err := workspace.GetDatastores()
+		httpClientBuilder := MockedHttpClientBuilder{httpClient}
+		workspace := newWorkspace(httpClientBuilder, &zap.Logger{})
+		datastore, err := workspace.GetDatastores("", "")
 		a.Equal(tc.expected, datastore, tc.description)
 		a.Equal(tc.getDatastoreError, err, tc.description)
 	}
@@ -274,8 +276,9 @@ func TestWorkspace_DeleteDatastore(t *testing.T) {
 			[]byte(""),
 			tc.httpClientError,
 		)
-		workspace, _ := newClient(httpClient, &zap.SugaredLogger{})
-		err := workspace.DeleteDatastore(tc.datastoreName)
+		builder := MockedHttpClientBuilder{httpClient}
+		workspace := newWorkspace(builder, &zap.Logger{})
+		err := workspace.DeleteDatastore("", "", tc.datastoreName)
 		a.Equal(tc.expectedError, err, tc.description)
 	}
 }

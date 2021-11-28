@@ -13,6 +13,40 @@ const (
 	amlWorkspaceApiBaseUrl = "https://management.azure.com/subscriptions/%s/resourceGroups/%s/providers/Microsoft.MachineLearningServices/workspaces/%s"
 )
 
+type HttpClientBuilderAPI interface {
+	newClient(resourceGroupName, workspaceName string) HttpClientAPI
+}
+
+func newHttpClientBuilder(
+	logger *zap.SugaredLogger,
+	msalClient confidential.Client,
+	subscriptionId string) HttpClientBuilderAPI {
+	return &HttpClientBuilder{
+		logger:         logger,
+		msalClient:     msalClient,
+		subscriptionId: subscriptionId,
+		httpClient:     &http.Client{},
+	}
+}
+
+type HttpClientBuilder struct {
+	logger         *zap.SugaredLogger
+	msalClient     confidential.Client
+	subscriptionId string
+	httpClient     *http.Client
+}
+
+func (b *HttpClientBuilder) newClient(resourceGroupName, workspaceName string) HttpClientAPI {
+	return &HttpClient{
+		logger:            b.logger,
+		msalClient:        b.msalClient,
+		subscriptionId:    b.subscriptionId,
+		resourceGroupName: resourceGroupName,
+		workspaceName:     workspaceName,
+		httpClient:        b.httpClient,
+	}
+}
+
 type HttpClientAPI interface {
 	doGet(path string) (*http.Response, error)
 
@@ -26,22 +60,6 @@ type HttpClient struct {
 	resourceGroupName string
 	workspaceName     string
 	httpClient        *http.Client
-}
-
-func newHttpClient(
-	logger *zap.SugaredLogger,
-	msalClient confidential.Client,
-	subscriptionId,
-	resourceGroupName,
-	workspaceName string) *HttpClient {
-	return &HttpClient{
-		logger:            logger,
-		msalClient:        msalClient,
-		subscriptionId:    subscriptionId,
-		resourceGroupName: resourceGroupName,
-		workspaceName:     workspaceName,
-		httpClient:        &http.Client{},
-	}
 }
 
 func (c HttpClient) getJwt() (string, error) {
