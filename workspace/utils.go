@@ -2,8 +2,8 @@ package workspace
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
-	"os"
 )
 
 const (
@@ -11,7 +11,7 @@ const (
 )
 
 func loadExampleResp(fileName string) []byte {
-	file, err := os.ReadFile(fmt.Sprintf("%s/%s", exampleRespsDir, fileName))
+	file, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", exampleRespsDir, fileName))
 	if err != nil {
 		log.Fatalf("Could not load example resp \"%s\"", fileName)
 	}
