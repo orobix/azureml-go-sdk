@@ -5,7 +5,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func toDatastore(json []byte) *Datastore {
+func unmarshalDatastore(json []byte) *Datastore {
 	sysData := SystemData{
 		CreationDate:         gjson.GetBytes(json, "systemData.createdAt").Time(),
 		CreationUserType:     gjson.GetBytes(json, "systemData.createdByType").Str,
@@ -37,11 +37,11 @@ func toDatastore(json []byte) *Datastore {
 	}
 }
 
-func toDatastoreArray(json []byte) []Datastore {
+func unmarshalDatastoreArray(json []byte) []Datastore {
 	jsonDatastoreArray := gjson.GetBytes(json, "value").Array()
 	datastoreSlice := make([]Datastore, gjson.GetBytes(json, "value.#").Int())
 	for i, jsonDatastore := range jsonDatastoreArray {
-		datastore := toDatastore([]byte(jsonDatastore.Raw))
+		datastore := unmarshalDatastore([]byte(jsonDatastore.Raw))
 		datastoreSlice[i] = *datastore
 		fmt.Println(datastore)
 	}

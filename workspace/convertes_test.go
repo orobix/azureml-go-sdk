@@ -6,11 +6,11 @@ import (
 	"time"
 )
 
-func TestToDatastore(t *testing.T) {
+func TestUmarshalDatastore(t *testing.T) {
 	a := assert.New(t)
 
 	resp := loadExampleResp("example_resp_get_datastore.json")
-	datastore := toDatastore(resp)
+	datastore := unmarshalDatastore(resp)
 	a.NotEmpty(datastore)
 	a.Equal("id-1", datastore.Id)
 	a.Equal("datastore-1", datastore.Name)
@@ -41,11 +41,11 @@ func TestToDatastore(t *testing.T) {
 	a.Equal("Application", sysData.LastModifiedUserType)
 }
 
-func TestToDatastoreArray(t *testing.T) {
+func TestUnmarshalDatastoreArray(t *testing.T) {
 	a := assert.New(t)
 
 	resp := loadExampleResp("example_resp_get_datastore_list.json")
-	datastoreArray := toDatastoreArray(resp)
+	datastoreArray := unmarshalDatastoreArray(resp)
 	a.NotEmpty(datastoreArray)
 	a.Len(datastoreArray, 2)
 
@@ -79,10 +79,10 @@ func TestToDatastoreArray(t *testing.T) {
 	a.False(firstDatastore.IsDefault)
 }
 
-func TestToDatastoreArrayEmptyResp(t *testing.T) {
+func TestUnmarshalDatastoreArrayEmptyResp(t *testing.T) {
 	a := assert.New(t)
 	resp := loadExampleResp("example_resp_get_empty_list.json")
 
-	datastoreArray := toDatastoreArray(resp)
+	datastoreArray := unmarshalDatastoreArray(resp)
 	a.Empty(datastoreArray)
 }

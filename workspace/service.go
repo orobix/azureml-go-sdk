@@ -71,7 +71,7 @@ func (c *Workspace) GetDatastores(resourceGroup, workspace string) ([]Datastore,
 		return nil, &HttpResponseError{resp.StatusCode, string(body)}
 	}
 
-	return toDatastoreArray(body), err
+	return unmarshalDatastoreArray(body), err
 }
 
 func (c *Workspace) GetDatastore(resourceGroup, workspace, datastoreName string) (*Datastore, error) {
@@ -94,7 +94,7 @@ func (c *Workspace) GetDatastore(resourceGroup, workspace, datastoreName string)
 		return nil, &HttpResponseError{resp.StatusCode, string(body)}
 	}
 
-	return toDatastore(body), err
+	return unmarshalDatastore(body), err
 }
 
 func (c *Workspace) DeleteDatastore(resourceGroup, workspace, datastoreName string) error {
