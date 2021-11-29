@@ -15,6 +15,7 @@ type SystemData struct {
 type DatastoreAuth struct {
 	CredentialsType string
 	ClientId        string
+	TenantId        string
 	ClientSecret    string
 	AccountKey      string
 	SqlUserName     string

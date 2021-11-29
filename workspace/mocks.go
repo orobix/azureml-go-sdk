@@ -35,3 +35,7 @@ func (m *MockedHttpClient) doGet(path string) (*http.Response, error) {
 func (m *MockedHttpClient) doDelete(path string) (*http.Response, error) {
 	return &m.mockedResponse, m.err
 }
+
+func (m *MockedHttpClient) doPut(path string, body interface{}) (*http.Response, error) {
+	return &m.mockedResponse, m.err
+}

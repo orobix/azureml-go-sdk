@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 type Workspace struct {
@@ -120,6 +121,27 @@ func (c *Workspace) DeleteDatastore(resourceGroup, workspace, datastoreName stri
 	return nil
 }
 
-//func (c *Workspace) CreateOrUpdateDatastore() (*Datastore, error) {
-//
-//}
+func (c *Workspace) CreateOrUpdateDatastore(resourceGroup, workspace string, datastore *Datastore) (*Datastore, error) {
+	if strings.TrimSpace(datastore.Name) == "" {
+		return nil, InvalidArgumentError{"the datastore name cannot be empty"}
+	}
+
+	path := fmt.Sprintf("datastores/%s", datastore.Name)
+	schema := toWriteDatastoreSchema(datastore)
+	resp, err := c.httpClientBuilder.newClient(resourceGroup, workspace).doPut(path, schema)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, &HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	return unmarshalDatastore(body), err
+}

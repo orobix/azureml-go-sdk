@@ -1,10 +1,13 @@
 package workspace
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
 )
 
@@ -51,6 +54,8 @@ type HttpClientAPI interface {
 	doGet(path string) (*http.Response, error)
 
 	doDelete(path string) (*http.Response, error)
+
+	doPut(path string, requestBody interface{}) (*http.Response, error)
 }
 
 type HttpClient struct {
@@ -78,8 +83,15 @@ func (c *HttpClient) getWorkspaceApiBaseUrl() string {
 	return fmt.Sprintf(amlWorkspaceApiBaseUrl, c.subscriptionId, c.resourceGroupName, c.workspaceName)
 }
 
-func (c *HttpClient) newRequest(method string, url string) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, nil)
+func (c *HttpClient) newRequest(method string, url string, requestBody []byte) (*http.Request, error) {
+	var requestBodyReader io.Reader
+	if requestBody == nil {
+		requestBodyReader = nil
+	} else {
+		requestBodyReader = bytes.NewBuffer(requestBody)
+	}
+
+	req, err := http.NewRequest(method, url, requestBodyReader)
 	if err != nil {
 		return req, err
 	}
@@ -102,7 +114,7 @@ func (c *HttpClient) newRequest(method string, url string) (*http.Request, error
 
 func (c *HttpClient) doGet(path string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s", c.getWorkspaceApiBaseUrl(), path)
-	request, err := c.newRequest("GET", url)
+	request, err := c.newRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -112,10 +124,28 @@ func (c *HttpClient) doGet(path string) (*http.Response, error) {
 
 func (c *HttpClient) doDelete(path string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s", c.getWorkspaceApiBaseUrl(), path)
-	request, err := c.newRequest("DELETE", url)
+	request, err := c.newRequest("DELETE", url, nil)
 	if err != nil {
 		return nil, err
 	}
 	c.logger.Infof("GET > %s", url)
+	return c.httpClient.Do(request)
+}
+
+func (c *HttpClient) doPut(path string, requestBody interface{}) (*http.Response, error) {
+	url := fmt.Sprintf("%s/%s", c.getWorkspaceApiBaseUrl(), path)
+
+	b, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	request, err := c.newRequest("PUT", url, b)
+	request.Header.Add("Content-Type", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	c.logger.Infof("PUT > %s", url)
 	return c.httpClient.Do(request)
 }
