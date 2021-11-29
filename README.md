@@ -31,14 +31,16 @@ go get -u github.com/Telemaco019/azureml-go-sdk
 
 ```go
 import (
-"github.com/Telemaco019/azureml-go-sdk/workspace"
+  "github.com/Telemaco019/azureml-go-sdk/workspace"
 )
+
 config := workspace.Config{
-ClientId:       "", // the client ID of the Service Principal used for authenticating with Azure
-ClientSecret:   "", // the client secret of the Service Principal used for authenticating with Azure
-TenantId:       "", // the tenant ID to which the Service Principal used for authenticating with Azure belongs to
-SubscriptionId: "", // the Azure Subscription ID of the subscription containing the AML Workspace
+  ClientId:       "", // the client ID of the Service Principal used for authenticating with Azure
+  ClientSecret:   "", // the client secret of the Service Principal used for authenticating with Azure
+  TenantId:       "", // the tenant ID to which the Service Principal used for authenticating with Azure belongs to
+  SubscriptionId: "", // the Azure Subscription ID of the subscription containing the AML Workspace
 }
+
 ws, err := workspace.New(config, true)
 ```
 
