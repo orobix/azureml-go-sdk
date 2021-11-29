@@ -282,3 +282,66 @@ func TestWorkspace_DeleteDatastore(t *testing.T) {
 		a.Equal(tc.expectedError, err, tc.description)
 	}
 }
+
+func TestWorkspace_CreateOrUpdateDatastore(t *testing.T) {
+	a := assert.New(t)
+	testCases := []struct {
+		description         string
+		inputDatastore      *Datastore
+		responseStatusCode  int
+		responseExampleName string
+		httpClientError     error // error returned by each call of the Http Client
+		expectedError       error
+	}{
+		{
+			"Invalid input: datastore without name",
+			&Datastore{},
+			http.StatusOK,
+			"example_resp_empty.json",
+			nil,
+			InvalidArgumentError{"the datastore name cannot be empty"},
+		},
+		{
+			"HTTP 201 - Created",
+			&Datastore{Name: "foo"},
+			http.StatusCreated,
+			"example_resp_get_datastore.json",
+			nil,
+			nil,
+		},
+		{
+			"HTTP 500 - AzureML Internal error",
+			&Datastore{Name: "foo"},
+			http.StatusInternalServerError,
+			"example_resp_empty.json",
+			nil,
+			&HttpResponseError{http.StatusInternalServerError, ""},
+		},
+		{
+			"HTTP Client error",
+			&Datastore{Name: "foo"},
+			http.StatusOK,
+			"example_resp_empty.json",
+			&exec.Error{"", nil},
+			&exec.Error{"", nil},
+		},
+	}
+
+	for _, tc := range testCases {
+		httpClient := newMockedHttpClient(
+			tc.responseStatusCode,
+			loadExampleResp(tc.responseExampleName),
+			tc.httpClientError,
+		)
+		builder := MockedHttpClientBuilder{httpClient}
+		workspace := newWorkspace(builder, &zap.Logger{})
+		ds, err := workspace.CreateOrUpdateDatastore("", "", tc.inputDatastore)
+
+		if err == nil {
+			a.Equal(unmarshalDatastore(loadExampleResp(tc.responseExampleName)), ds)
+		} else {
+			a.Nil(ds)
+			a.Equal(tc.expectedError, err, tc.description)
+		}
+	}
+}
