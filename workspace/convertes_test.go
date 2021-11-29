@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestUmarshalDatastore(t *testing.T) {
+func TestUnmarshalDatastore(t *testing.T) {
 	a := assert.New(t)
 
 	resp := loadExampleResp("example_resp_get_datastore.json")
@@ -87,4 +87,42 @@ func TestUnmarshalDatastoreArrayEmptyResp(t *testing.T) {
 
 	datastoreArray := unmarshalDatastoreArray(resp)
 	a.Empty(datastoreArray)
+}
+
+func TestToWriteDatastoreSchemaEmptyDatastore(t *testing.T) {
+	a := assert.New(t)
+	datastore := Datastore{}
+	writeSchema := toWriteDatastoreSchema(&datastore)
+	a.Equal(&SchemaWrapper{WriteDatastoreSchemaProperties{Contents: WriteDatastoreSchema{}}}, writeSchema)
+}
+
+func TestToWriteDatastoreSchema(t *testing.T) {
+	resp := loadExampleResp("example_resp_get_datastore.json")
+	datastore := unmarshalDatastore(resp)
+
+	writeSchema := toWriteDatastoreSchema(datastore)
+	expected := &SchemaWrapper{
+		WriteDatastoreSchemaProperties{
+			IsDefault:   datastore.IsDefault,
+			Description: datastore.Description,
+			Contents: WriteDatastoreSchema{
+				ContentsType:         datastore.StorageType,
+				StorageAccountName:   datastore.StorageAccountName,
+				StorageContainerName: datastore.StorageContainerName,
+				Credentials: WriteDatastoreCredentialsSchema{
+					CredentialsType: datastore.Auth.CredentialsType,
+					Secrets: WriteDatastoreSecretsSchema{
+						SecretsType:     datastore.Auth.CredentialsType,
+						AccountKey:      datastore.Auth.AccountKey,
+						ClientSecret:    datastore.Auth.ClientSecret,
+						SqlUserPassword: datastore.Auth.SqlUserPassword,
+					},
+					ClientId:    datastore.Auth.ClientId,
+					TenantId:    datastore.Auth.TenantId,
+					SqlUserName: datastore.Auth.SqlUserName,
+				},
+			},
+		},
+	}
+	assert.Equal(t, expected, writeSchema)
 }

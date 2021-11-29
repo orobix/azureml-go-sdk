@@ -60,10 +60,10 @@ func TestWorkspace_GetDatastore(t *testing.T) {
 				StorageAccountName:   "account-1",
 				StorageContainerName: "container-1",
 				StorageType:          "AzureBlob",
-				Auth: &DatastoreAuth{
+				Auth: DatastoreAuth{
 					CredentialsType: "AccountKey",
 				},
-				SystemData: &SystemData{
+				SystemData: SystemData{
 					CreationDate:         time.Date(2021, 10, 25, 10, 53, 40, 700170900, utcLocation),
 					CreationUserType:     "Application",
 					CreationUser:         "creationUser",
@@ -149,10 +149,10 @@ func TestWorkspace_GetDatastores(t *testing.T) {
 					StorageAccountName:   "account-1",
 					StorageContainerName: "container-1",
 					StorageType:          "AzureFile",
-					Auth: &DatastoreAuth{
+					Auth: DatastoreAuth{
 						CredentialsType: "AccountKey",
 					},
-					SystemData: &SystemData{
+					SystemData: SystemData{
 						CreationDate:         time.Date(2021, 10, 7, 10, 31, 1, 714023800, utcLocation),
 						CreationUserType:     "Application",
 						CreationUser:         "redacted",
@@ -171,10 +171,10 @@ func TestWorkspace_GetDatastores(t *testing.T) {
 					StorageContainerName: "container-1",
 					StorageType:          "AzureBlob",
 
-					Auth: &DatastoreAuth{
+					Auth: DatastoreAuth{
 						CredentialsType: "AccountKey",
 					},
-					SystemData: &SystemData{
+					SystemData: SystemData{
 						CreationDate:         time.Date(2021, 10, 7, 10, 31, 1, 667508600, utcLocation),
 						CreationUser:         "redacted",
 						CreationUserType:     "Application",

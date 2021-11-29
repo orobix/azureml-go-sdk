@@ -8,19 +8,18 @@ type WriteDatastoreSecretsSchema struct {
 }
 
 type WriteDatastoreCredentialsSchema struct {
-	CredentialsType string                       `json:"credentialsType"`
-	Secrets         *WriteDatastoreSecretsSchema `json:"secrets"`
-	ClientId        string                       `json:"clientId,omitempty"`
-	TenantId        string                       `json:"tenantId,omitempty"`
-	AuthorityUrl    string                       `json:"authorityUrl,omitempty"`
-	SqlUserName     string                       `json:"userId,omitempty"`
+	CredentialsType string                      `json:"credentialsType"`
+	Secrets         WriteDatastoreSecretsSchema `json:"secrets"`
+	ClientId        string                      `json:"clientId,omitempty"`
+	TenantId        string                      `json:"tenantId,omitempty"`
+	SqlUserName     string                      `json:"userId,omitempty"`
 }
 
 type WriteDatastoreSchema struct {
-	ContentsType         string                           `json:"contentsType"`
-	StorageAccountName   string                           `json:"accountName,omitempty"`
-	StorageContainerName string                           `json:"containerName,omitempty"`
-	Credentials          *WriteDatastoreCredentialsSchema `json:"credentials"`
+	ContentsType         string                          `json:"contentsType"`
+	StorageAccountName   string                          `json:"accountName,omitempty"`
+	StorageContainerName string                          `json:"containerName,omitempty"`
+	Credentials          WriteDatastoreCredentialsSchema `json:"credentials"`
 }
 
 type WriteDatastoreSchemaProperties struct {

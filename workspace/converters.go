@@ -33,8 +33,8 @@ func unmarshalDatastore(json []byte) *Datastore {
 		StorageContainerName: gjson.GetBytes(json, "properties.contents.containerName").Str,
 		StorageType:          gjson.GetBytes(json, "properties.contents.contentsType").Str,
 
-		SystemData: &sysData,
-		Auth:       &auth,
+		SystemData: sysData,
+		Auth:       auth,
 	}
 }
 
@@ -50,13 +50,13 @@ func unmarshalDatastoreArray(json []byte) []Datastore {
 }
 
 func toWriteDatastoreSchema(datastore *Datastore) *SchemaWrapper {
-	secrets := &WriteDatastoreSecretsSchema{
+	secrets := WriteDatastoreSecretsSchema{
 		SecretsType:     datastore.Auth.CredentialsType,
 		AccountKey:      datastore.Auth.AccountKey,
 		ClientSecret:    datastore.Auth.ClientSecret,
 		SqlUserPassword: datastore.Auth.SqlUserPassword,
 	}
-	credentials := &WriteDatastoreCredentialsSchema{
+	credentials := WriteDatastoreCredentialsSchema{
 		CredentialsType: datastore.Auth.CredentialsType,
 		Secrets:         secrets,
 		ClientId:        datastore.Auth.ClientId,

@@ -33,6 +33,6 @@ type Datastore struct {
 	StorageAccountName   string
 	StorageContainerName string
 
-	SystemData *SystemData
-	Auth       *DatastoreAuth
+	SystemData SystemData
+	Auth       DatastoreAuth
 }
