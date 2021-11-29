@@ -19,3 +19,11 @@ type HttpResponseError struct {
 func (e HttpResponseError) Error() string {
 	return fmt.Sprintf("HTTP Response is in error [status code %d]: %s", e.statusCode, e.responseContent)
 }
+
+type InvalidArgumentError struct {
+	message string
+}
+
+func (e InvalidArgumentError) Error() string {
+	return fmt.Sprintf("Invalid argument: %s", e.message)
+}

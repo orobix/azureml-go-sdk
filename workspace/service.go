@@ -6,21 +6,19 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 type Workspace struct {
-	httpClient HttpClientAPI
-	logger     *zap.SugaredLogger
-	config     Config
+	httpClientBuilder HttpClientBuilderAPI
+	logger            *zap.SugaredLogger
 }
 
 type Config struct {
-	ClientId          string
-	ClientSecret      string
-	TenantId          string
-	SubscriptionId    string
-	ResourceGroupName string
-	WorkspaceName     string
+	ClientId       string
+	ClientSecret   string
+	TenantId       string
+	SubscriptionId string
 }
 
 func New(config Config, debug bool) (*Workspace, error) {
@@ -42,27 +40,24 @@ func New(config Config, debug bool) (*Workspace, error) {
 		return &Workspace{}, err
 	}
 
-	httpClient := newHttpClient(
+	httpClientBuilder := newHttpClientBuilder(
 		logger.Sugar(),
 		msalClient,
 		config.SubscriptionId,
-		config.ResourceGroupName,
-		config.WorkspaceName,
 	)
 
-	return newClient(httpClient, logger.Sugar())
+	return newWorkspace(httpClientBuilder, logger), nil
 }
 
-func newClient(httpClient HttpClientAPI, logger *zap.SugaredLogger) (*Workspace, error) {
-	client := &Workspace{
-		httpClient: httpClient,
-		logger:     logger,
+func newWorkspace(clientBuilder HttpClientBuilderAPI, logger *zap.Logger) *Workspace {
+	return &Workspace{
+		httpClientBuilder: clientBuilder,
+		logger:            logger.Sugar(),
 	}
-	return client, nil
 }
 
-func (c *Workspace) GetDatastores() ([]Datastore, error) {
-	resp, err := c.httpClient.doGet("datastores")
+func (c *Workspace) GetDatastores(resourceGroup, workspace string) ([]Datastore, error) {
+	resp, err := c.httpClientBuilder.newClient(resourceGroup, workspace).doGet("datastores")
 	if err != nil {
 		return nil, err
 	}
@@ -77,12 +72,12 @@ func (c *Workspace) GetDatastores() ([]Datastore, error) {
 		return nil, &HttpResponseError{resp.StatusCode, string(body)}
 	}
 
-	return toDatastoreArray(body), err
+	return unmarshalDatastoreArray(body), err
 }
 
-func (c *Workspace) GetDatastore(name string) (*Datastore, error) {
-	path := fmt.Sprintf("datastores/%s", name)
-	resp, err := c.httpClient.doGet(path)
+func (c *Workspace) GetDatastore(resourceGroup, workspace, datastoreName string) (*Datastore, error) {
+	path := fmt.Sprintf("datastores/%s", datastoreName)
+	resp, err := c.httpClientBuilder.newClient(resourceGroup, workspace).doGet(path)
 	if err != nil {
 		return nil, err
 	}
@@ -94,11 +89,59 @@ func (c *Workspace) GetDatastore(name string) (*Datastore, error) {
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ResourceNotFoundError{"datastore", name}
+		return nil, &ResourceNotFoundError{"datastore", datastoreName}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, &HttpResponseError{resp.StatusCode, string(body)}
 	}
 
-	return toDatastore(body), err
+	return unmarshalDatastore(body), err
+}
+
+func (c *Workspace) DeleteDatastore(resourceGroup, workspace, datastoreName string) error {
+	path := fmt.Sprintf("datastores/%s", datastoreName)
+	resp, err := c.httpClientBuilder.newClient(resourceGroup, workspace).doDelete(path)
+
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &ResourceNotFoundError{"datastore", datastoreName}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return &HttpResponseError{resp.StatusCode, string(body)}
+	}
+	return nil
+}
+
+func (c *Workspace) CreateOrUpdateDatastore(resourceGroup, workspace string, datastore *Datastore) (*Datastore, error) {
+	if strings.TrimSpace(datastore.Name) == "" {
+		return nil, InvalidArgumentError{"the datastore name cannot be empty"}
+	}
+
+	path := fmt.Sprintf("datastores/%s", datastore.Name)
+	schema := toWriteDatastoreSchema(datastore)
+	resp, err := c.httpClientBuilder.newClient(resourceGroup, workspace).doPut(path, schema)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, &HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	return unmarshalDatastore(body), err
 }

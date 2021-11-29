@@ -52,15 +52,25 @@ func TestWorkspace_GetDatastore(t *testing.T) {
 			nil,
 			nil,
 			&Datastore{
-				"id-1",
-				"datastore-1",
-				false,
-				"test",
-				"account-1",
-				"container-1",
-				"AzureBlob",
-				time.Date(2021, 10, 25, 10, 53, 40, 700170900, utcLocation),
-				time.Date(2021, 10, 25, 10, 53, 41, 565682100, utcLocation),
+				Id:                   "id-1",
+				Name:                 "datastore-1",
+				Type:                 "AzureBlob",
+				IsDefault:            false,
+				Description:          "test",
+				StorageAccountName:   "account-1",
+				StorageContainerName: "container-1",
+				StorageType:          "AzureBlob",
+				Auth: DatastoreAuth{
+					CredentialsType: "AccountKey",
+				},
+				SystemData: SystemData{
+					CreationDate:         time.Date(2021, 10, 25, 10, 53, 40, 700170900, utcLocation),
+					CreationUserType:     "Application",
+					CreationUser:         "creationUser",
+					LastModifiedDate:     time.Date(2021, 10, 25, 10, 53, 41, 565682100, utcLocation),
+					LastModifiedUserType: "Application",
+					LastModifiedUser:     "lastModifiedUser",
+				},
 			},
 		},
 		{
@@ -104,8 +114,9 @@ func TestWorkspace_GetDatastore(t *testing.T) {
 			loadExampleResp(tc.responseExampleName),
 			tc.httpClientError,
 		)
-		workspace, _ := newClient(httpClient, &zap.SugaredLogger{})
-		datastore, err := workspace.GetDatastore(tc.datastoreName)
+		httpClientBuilder := MockedHttpClientBuilder{httpClient: httpClient}
+		workspace := newWorkspace(httpClientBuilder, &zap.Logger{})
+		datastore, err := workspace.GetDatastore("", "", tc.datastoreName)
 		a.Equal(tc.expected, datastore, tc.description)
 		a.Equal(tc.getDatastoreError, err, tc.description)
 	}
@@ -130,26 +141,47 @@ func TestWorkspace_GetDatastores(t *testing.T) {
 			nil,
 			[]Datastore{
 				{
-					"id-1",
-					"datastore-1",
-					false,
-					"test",
-					"account-1",
-					"container-1",
-					"AzureFile",
-					time.Date(2021, 10, 7, 10, 31, 1, 714023800, utcLocation),
-					time.Date(2021, 10, 7, 10, 31, 2, 649878600, utcLocation),
+					Id:                   "id-1",
+					Name:                 "datastore-1",
+					Type:                 "AzureFile",
+					IsDefault:            false,
+					Description:          "test",
+					StorageAccountName:   "account-1",
+					StorageContainerName: "container-1",
+					StorageType:          "AzureFile",
+					Auth: DatastoreAuth{
+						CredentialsType: "AccountKey",
+					},
+					SystemData: SystemData{
+						CreationDate:         time.Date(2021, 10, 7, 10, 31, 1, 714023800, utcLocation),
+						CreationUserType:     "Application",
+						CreationUser:         "redacted",
+						LastModifiedDate:     time.Date(2021, 10, 7, 10, 31, 2, 649878600, utcLocation),
+						LastModifiedUserType: "Application",
+						LastModifiedUser:     "redacted",
+					},
 				},
 				{
-					"redacted",
-					"datastore-2",
-					true,
-					"",
-					"account-2",
-					"container-1",
-					"AzureBlob",
-					time.Date(2021, 10, 7, 10, 31, 1, 667508600, utcLocation),
-					time.Date(2021, 10, 7, 10, 31, 2, 879810500, utcLocation),
+					Id:                   "redacted",
+					Name:                 "datastore-2",
+					Type:                 "AzureBlob",
+					IsDefault:            true,
+					Description:          "",
+					StorageAccountName:   "account-2",
+					StorageContainerName: "container-1",
+					StorageType:          "AzureBlob",
+
+					Auth: DatastoreAuth{
+						CredentialsType: "AccountKey",
+					},
+					SystemData: SystemData{
+						CreationDate:         time.Date(2021, 10, 7, 10, 31, 1, 667508600, utcLocation),
+						CreationUser:         "redacted",
+						CreationUserType:     "Application",
+						LastModifiedDate:     time.Date(2021, 10, 7, 10, 31, 2, 879810500, utcLocation),
+						LastModifiedUser:     "redacted",
+						LastModifiedUserType: "Application",
+					},
 				},
 			},
 		},
@@ -191,9 +223,125 @@ func TestWorkspace_GetDatastores(t *testing.T) {
 			loadExampleResp(tc.responseExampleName),
 			tc.httpClientError,
 		)
-		workspace, _ := newClient(httpClient, &zap.SugaredLogger{})
-		datastore, err := workspace.GetDatastores()
+		httpClientBuilder := MockedHttpClientBuilder{httpClient}
+		workspace := newWorkspace(httpClientBuilder, &zap.Logger{})
+		datastore, err := workspace.GetDatastores("", "")
 		a.Equal(tc.expected, datastore, tc.description)
 		a.Equal(tc.getDatastoreError, err, tc.description)
+	}
+}
+
+func TestWorkspace_DeleteDatastore(t *testing.T) {
+	a := assert.New(t)
+	testCases := []struct {
+		description        string
+		datastoreName      string
+		responseStatusCode int
+		httpClientError    error // error returned by each call of the Http Client
+		expectedError      error
+	}{
+		{
+			"HTTP 200 OK",
+			"foo",
+			http.StatusOK,
+			nil,
+			nil,
+		},
+		{
+			"HTTP 404 - Datastore not found",
+			"foo",
+			http.StatusNotFound,
+			nil,
+			&ResourceNotFoundError{"datastore", "foo"},
+		},
+		{
+			"HTTP 500 - AzureML Internal error",
+			"foo",
+			http.StatusInternalServerError,
+			nil,
+			&HttpResponseError{http.StatusInternalServerError, ""},
+		},
+		{
+			"HTTP Client error",
+			"foo",
+			http.StatusOK,
+			&exec.Error{"", nil},
+			&exec.Error{"", nil},
+		},
+	}
+
+	for _, tc := range testCases {
+		httpClient := newMockedHttpClient(
+			tc.responseStatusCode,
+			[]byte(""),
+			tc.httpClientError,
+		)
+		builder := MockedHttpClientBuilder{httpClient}
+		workspace := newWorkspace(builder, &zap.Logger{})
+		err := workspace.DeleteDatastore("", "", tc.datastoreName)
+		a.Equal(tc.expectedError, err, tc.description)
+	}
+}
+
+func TestWorkspace_CreateOrUpdateDatastore(t *testing.T) {
+	a := assert.New(t)
+	testCases := []struct {
+		description         string
+		inputDatastore      *Datastore
+		responseStatusCode  int
+		responseExampleName string
+		httpClientError     error // error returned by each call of the Http Client
+		expectedError       error
+	}{
+		{
+			"Invalid input: datastore without name",
+			&Datastore{},
+			http.StatusOK,
+			"example_resp_empty.json",
+			nil,
+			InvalidArgumentError{"the datastore name cannot be empty"},
+		},
+		{
+			"HTTP 201 - Created",
+			&Datastore{Name: "foo"},
+			http.StatusCreated,
+			"example_resp_get_datastore.json",
+			nil,
+			nil,
+		},
+		{
+			"HTTP 500 - AzureML Internal error",
+			&Datastore{Name: "foo"},
+			http.StatusInternalServerError,
+			"example_resp_empty.json",
+			nil,
+			&HttpResponseError{http.StatusInternalServerError, ""},
+		},
+		{
+			"HTTP Client error",
+			&Datastore{Name: "foo"},
+			http.StatusOK,
+			"example_resp_empty.json",
+			&exec.Error{"", nil},
+			&exec.Error{"", nil},
+		},
+	}
+
+	for _, tc := range testCases {
+		httpClient := newMockedHttpClient(
+			tc.responseStatusCode,
+			loadExampleResp(tc.responseExampleName),
+			tc.httpClientError,
+		)
+		builder := MockedHttpClientBuilder{httpClient}
+		workspace := newWorkspace(builder, &zap.Logger{})
+		ds, err := workspace.CreateOrUpdateDatastore("", "", tc.inputDatastore)
+
+		if err == nil {
+			a.Equal(unmarshalDatastore(loadExampleResp(tc.responseExampleName)), ds)
+		} else {
+			a.Nil(ds)
+			a.Equal(tc.expectedError, err, tc.description)
+		}
 	}
 }
