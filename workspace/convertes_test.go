@@ -14,7 +14,6 @@ func TestUnmarshalDatastore(t *testing.T) {
 	a.NotEmpty(datastore)
 	a.Equal("id-1", datastore.Id)
 	a.Equal("datastore-1", datastore.Name)
-	a.Equal("AzureBlob", datastore.Type)
 	a.Equal("test", datastore.Description)
 	a.Equal("AzureBlob", datastore.StorageType)
 	a.Equal("account-1", datastore.StorageAccountName)
@@ -53,7 +52,6 @@ func TestUnmarshalDatastoreArray(t *testing.T) {
 	firstDatastore := datastoreArray[0]
 	a.Equal("id-1", firstDatastore.Id)
 	a.Equal("datastore-1", firstDatastore.Name)
-	a.Equal("AzureFile", firstDatastore.Type)
 	a.Equal("test", firstDatastore.Description)
 	a.Equal("AzureFile", firstDatastore.StorageType)
 	a.Equal("account-1", firstDatastore.StorageAccountName)

@@ -26,7 +26,6 @@ func unmarshalDatastore(json []byte) *Datastore {
 	return &Datastore{
 		Id:                   gjson.GetBytes(json, "id").Str,
 		Name:                 gjson.GetBytes(json, "name").Str,
-		Type:                 gjson.GetBytes(json, "properties.contents.contentsType").Str,
 		Description:          gjson.GetBytes(json, "properties.description").Str,
 		IsDefault:            gjson.GetBytes(json, "properties.isDefault").Bool(),
 		StorageAccountName:   gjson.GetBytes(json, "properties.contents.accountName").Str,

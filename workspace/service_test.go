@@ -54,7 +54,6 @@ func TestWorkspace_GetDatastore(t *testing.T) {
 			&Datastore{
 				Id:                   "id-1",
 				Name:                 "datastore-1",
-				Type:                 "AzureBlob",
 				IsDefault:            false,
 				Description:          "test",
 				StorageAccountName:   "account-1",
@@ -143,7 +142,6 @@ func TestWorkspace_GetDatastores(t *testing.T) {
 				{
 					Id:                   "id-1",
 					Name:                 "datastore-1",
-					Type:                 "AzureFile",
 					IsDefault:            false,
 					Description:          "test",
 					StorageAccountName:   "account-1",
@@ -164,7 +162,6 @@ func TestWorkspace_GetDatastores(t *testing.T) {
 				{
 					Id:                   "redacted",
 					Name:                 "datastore-2",
-					Type:                 "AzureBlob",
 					IsDefault:            true,
 					Description:          "",
 					StorageAccountName:   "account-2",
