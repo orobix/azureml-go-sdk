@@ -25,7 +25,6 @@ type DatastoreAuth struct {
 type Datastore struct {
 	Id          string
 	Name        string
-	Type        string
 	IsDefault   bool
 	Description string
 
