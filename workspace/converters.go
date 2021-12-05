@@ -59,6 +59,7 @@ func toWriteDatastoreSchema(datastore *Datastore) *SchemaWrapper {
 		CredentialsType: datastore.Auth.CredentialsType,
 		Secrets:         secrets,
 		ClientId:        datastore.Auth.ClientId,
+		TenantId:        datastore.Auth.TenantId,
 		SqlUserName:     datastore.Auth.SqlUserName,
 	}
 	return &SchemaWrapper{
