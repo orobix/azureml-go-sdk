@@ -107,9 +107,9 @@ func TestToWriteDatastoreSchema(t *testing.T) {
 				ContentsType:         datastore.StorageType,
 				StorageAccountName:   datastore.StorageAccountName,
 				StorageContainerName: datastore.StorageContainerName,
-				Credentials: WriteDatastoreCredentialsSchema{
+				Credentials: &WriteDatastoreCredentialsSchema{
 					CredentialsType: datastore.Auth.CredentialsType,
-					Secrets: WriteDatastoreSecretsSchema{
+					Secrets: &WriteDatastoreSecretsSchema{
 						SecretsType:     datastore.Auth.CredentialsType,
 						AccountKey:      datastore.Auth.AccountKey,
 						ClientSecret:    datastore.Auth.ClientSecret,
@@ -119,6 +119,35 @@ func TestToWriteDatastoreSchema(t *testing.T) {
 					TenantId:    datastore.Auth.TenantId,
 					SqlUserName: datastore.Auth.SqlUserName,
 				},
+			},
+		},
+	}
+	assert.Equal(t, expected, writeSchema)
+}
+
+func TestToWriteDatastoreSchema_NilAuth(t *testing.T) {
+	datastore := &Datastore{
+		Id:                   "",
+		Name:                 "",
+		IsDefault:            false,
+		Description:          "",
+		StorageType:          "",
+		StorageAccountName:   "",
+		StorageContainerName: "",
+		SystemData:           nil,
+		Auth:                 nil,
+	}
+	writeSchema := toWriteDatastoreSchema(datastore)
+
+	expected := &SchemaWrapper{
+		WriteDatastoreSchemaProperties{
+			IsDefault:   datastore.IsDefault,
+			Description: datastore.Description,
+			Contents: WriteDatastoreSchema{
+				ContentsType:         datastore.StorageType,
+				StorageAccountName:   datastore.StorageAccountName,
+				StorageContainerName: datastore.StorageContainerName,
+				Credentials:          nil,
 			},
 		},
 	}
