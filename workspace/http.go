@@ -118,7 +118,7 @@ func (c *HttpClient) doGet(path string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.logger.Infof("GET > %s", url)
+	c.logger.Infof("GET > %s", request.URL)
 	return c.httpClient.Do(request)
 }
 
@@ -128,7 +128,7 @@ func (c *HttpClient) doDelete(path string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.logger.Infof("GET > %s", url)
+	c.logger.Infof("DELETE > %s", request.URL)
 	return c.httpClient.Do(request)
 }
 
@@ -146,6 +146,6 @@ func (c *HttpClient) doPut(path string, requestBody interface{}) (*http.Response
 		return nil, err
 	}
 
-	c.logger.Infof("PUT > %s", url)
+	c.logger.Infof("PUT > %s", request.URL)
 	return c.httpClient.Do(request)
 }
