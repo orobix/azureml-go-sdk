@@ -32,8 +32,8 @@ func unmarshalDatastore(json []byte) *Datastore {
 		StorageContainerName: gjson.GetBytes(json, "properties.contents.containerName").Str,
 		StorageType:          gjson.GetBytes(json, "properties.contents.contentsType").Str,
 
-		SystemData: sysData,
-		Auth:       auth,
+		SystemData: &sysData,
+		Auth:       &auth,
 	}
 }
 
@@ -49,19 +49,25 @@ func unmarshalDatastoreArray(json []byte) []Datastore {
 }
 
 func toWriteDatastoreSchema(datastore *Datastore) *SchemaWrapper {
-	secrets := WriteDatastoreSecretsSchema{
-		SecretsType:     datastore.Auth.CredentialsType,
-		AccountKey:      datastore.Auth.AccountKey,
-		ClientSecret:    datastore.Auth.ClientSecret,
-		SqlUserPassword: datastore.Auth.SqlUserPassword,
+	var secrets *WriteDatastoreSecretsSchema
+	var credentials *WriteDatastoreCredentialsSchema
+
+	if datastore.Auth != nil {
+		secrets = &WriteDatastoreSecretsSchema{
+			SecretsType:     datastore.Auth.CredentialsType,
+			AccountKey:      datastore.Auth.AccountKey,
+			ClientSecret:    datastore.Auth.ClientSecret,
+			SqlUserPassword: datastore.Auth.SqlUserPassword,
+		}
+		credentials = &WriteDatastoreCredentialsSchema{
+			CredentialsType: datastore.Auth.CredentialsType,
+			Secrets:         secrets,
+			ClientId:        datastore.Auth.ClientId,
+			TenantId:        datastore.Auth.TenantId,
+			SqlUserName:     datastore.Auth.SqlUserName,
+		}
 	}
-	credentials := WriteDatastoreCredentialsSchema{
-		CredentialsType: datastore.Auth.CredentialsType,
-		Secrets:         secrets,
-		ClientId:        datastore.Auth.ClientId,
-		TenantId:        datastore.Auth.TenantId,
-		SqlUserName:     datastore.Auth.SqlUserName,
-	}
+
 	return &SchemaWrapper{
 		Properties: WriteDatastoreSchemaProperties{
 			IsDefault:   datastore.IsDefault,
