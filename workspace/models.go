@@ -35,3 +35,12 @@ type Datastore struct {
 	SystemData *SystemData
 	Auth       *DatastoreAuth
 }
+
+type Dataset struct {
+	Id          string
+	Name        string
+	Description string
+	DatastoreId string
+	Version     int
+	SystemData  *SystemData
+}

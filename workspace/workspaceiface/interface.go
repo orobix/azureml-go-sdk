@@ -3,6 +3,12 @@ package workspaceiface
 import "github.com/Telemaco019/azureml-go-sdk/workspace"
 
 type WorkspaceAPI interface {
-	GetDatastore() *workspace.Datastore
-	GetDatastores() []workspace.Datastore
+	// GetDatastores Return the list of datastore of the AML Workspace provided as argument.
+	GetDatastores(resourceGroup, workspace string) ([]workspace.Datastore, error)
+
+	// GetDatastore Return the datastore with the name provided as argument.
+	GetDatastore(resourceGroup, workspace, datastoreName string) (*workspace.Datastore, error)
+
+	// GetDatasets Return the list of datasets of the AML Workspace. For each dataset, only its latest version is returned.
+	GetDatasets(resourceGroup, workspace string) ([]workspace.Dataset, error)
 }

@@ -1,9 +1,18 @@
 package workspace
 
 import (
-	"fmt"
 	"github.com/tidwall/gjson"
 )
+
+func unmarshalDatastoreArray(json []byte) []Datastore {
+	jsonDatastoreArray := gjson.GetBytes(json, "value").Array()
+	datastoreSlice := make([]Datastore, gjson.GetBytes(json, "value.#").Int())
+	for i, jsonDatastore := range jsonDatastoreArray {
+		datastore := unmarshalDatastore([]byte(jsonDatastore.Raw))
+		datastoreSlice[i] = *datastore
+	}
+	return datastoreSlice
+}
 
 func unmarshalDatastore(json []byte) *Datastore {
 	sysData := SystemData{
@@ -37,17 +46,6 @@ func unmarshalDatastore(json []byte) *Datastore {
 	}
 }
 
-func unmarshalDatastoreArray(json []byte) []Datastore {
-	jsonDatastoreArray := gjson.GetBytes(json, "value").Array()
-	datastoreSlice := make([]Datastore, gjson.GetBytes(json, "value.#").Int())
-	for i, jsonDatastore := range jsonDatastoreArray {
-		datastore := unmarshalDatastore([]byte(jsonDatastore.Raw))
-		datastoreSlice[i] = *datastore
-		fmt.Println(datastore)
-	}
-	return datastoreSlice
-}
-
 func toWriteDatastoreSchema(datastore *Datastore) *SchemaWrapper {
 	var secrets *WriteDatastoreSecretsSchema
 	var credentials *WriteDatastoreCredentialsSchema
@@ -79,5 +77,26 @@ func toWriteDatastoreSchema(datastore *Datastore) *SchemaWrapper {
 				Credentials:          credentials,
 			},
 		},
+	}
+}
+
+func unmarshalDatasetVersionArray(datasetName string, json []byte) []Dataset {
+	jsonDatasetArray := gjson.GetBytes(json, "value").Array()
+	datasetSlice := make([]Dataset, gjson.GetBytes(json, "value.#").Int())
+	for i, jsonDataset := range jsonDatasetArray {
+		dataset := unmarshalDatasetVersion(datasetName, []byte(jsonDataset.Raw))
+		datasetSlice[i] = *dataset
+	}
+	return datasetSlice
+}
+
+func unmarshalDatasetVersion(datasetName string, json []byte) *Dataset {
+	return &Dataset{
+		Id:          gjson.GetBytes(json, "id").Str,
+		Name:        datasetName,
+		Description: gjson.GetBytes(json, "properties.description").Str,
+		DatastoreId: gjson.GetBytes(json, "properties.datastoreId").Str,
+		Version:     int(gjson.GetBytes(json, "name").Int()),
+		SystemData:  &SystemData{},
 	}
 }

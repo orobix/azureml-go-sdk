@@ -1,12 +1,15 @@
 package workspace
 
 import (
+	"context"
 	"fmt"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
+	"github.com/tidwall/gjson"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 type Workspace struct {
@@ -56,8 +59,8 @@ func newWorkspace(clientBuilder HttpClientBuilderAPI, logger *zap.Logger) *Works
 	}
 }
 
-func (c *Workspace) GetDatastores(resourceGroup, workspace string) ([]Datastore, error) {
-	resp, err := c.httpClientBuilder.newClient(resourceGroup, workspace).doGet("datastores")
+func (w *Workspace) GetDatastores(resourceGroup, workspace string) ([]Datastore, error) {
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet("datastores")
 	if err != nil {
 		return nil, err
 	}
@@ -75,9 +78,9 @@ func (c *Workspace) GetDatastores(resourceGroup, workspace string) ([]Datastore,
 	return unmarshalDatastoreArray(body), err
 }
 
-func (c *Workspace) GetDatastore(resourceGroup, workspace, datastoreName string) (*Datastore, error) {
+func (w *Workspace) GetDatastore(resourceGroup, workspace, datastoreName string) (*Datastore, error) {
 	path := fmt.Sprintf("datastores/%s", datastoreName)
-	resp, err := c.httpClientBuilder.newClient(resourceGroup, workspace).doGet(path)
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet(path)
 	if err != nil {
 		return nil, err
 	}
@@ -98,9 +101,9 @@ func (c *Workspace) GetDatastore(resourceGroup, workspace, datastoreName string)
 	return unmarshalDatastore(body), err
 }
 
-func (c *Workspace) DeleteDatastore(resourceGroup, workspace, datastoreName string) error {
+func (w *Workspace) DeleteDatastore(resourceGroup, workspace, datastoreName string) error {
 	path := fmt.Sprintf("datastores/%s", datastoreName)
-	resp, err := c.httpClientBuilder.newClient(resourceGroup, workspace).doDelete(path)
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doDelete(path)
 
 	if err != nil {
 		return err
@@ -121,14 +124,14 @@ func (c *Workspace) DeleteDatastore(resourceGroup, workspace, datastoreName stri
 	return nil
 }
 
-func (c *Workspace) CreateOrUpdateDatastore(resourceGroup, workspace string, datastore *Datastore) (*Datastore, error) {
+func (w *Workspace) CreateOrUpdateDatastore(resourceGroup, workspace string, datastore *Datastore) (*Datastore, error) {
 	if strings.TrimSpace(datastore.Name) == "" {
 		return nil, InvalidArgumentError{"the datastore name cannot be empty"}
 	}
 
 	path := fmt.Sprintf("datastores/%s", datastore.Name)
 	schema := toWriteDatastoreSchema(datastore)
-	resp, err := c.httpClientBuilder.newClient(resourceGroup, workspace).doPut(path, schema)
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doPut(path, schema)
 	if err != nil {
 		return nil, err
 	}
@@ -144,4 +147,120 @@ func (c *Workspace) CreateOrUpdateDatastore(resourceGroup, workspace string, dat
 	}
 
 	return unmarshalDatastore(body), err
+}
+
+func (w *Workspace) GetDatasets(resourceGroup, workspace string) ([]Dataset, error) {
+	datasetNames, err := w.getDatasetNames(resourceGroup, workspace)
+	if err != nil {
+		return nil, err
+	}
+	return w.retrieveLatestDatasetsVersions(resourceGroup, workspace, datasetNames)
+}
+
+func (w *Workspace) retrieveLatestDatasetsVersions(resourceGroup, workspaceName string, datasetNames []string) ([]Dataset, error) {
+	var result []Dataset
+
+	latestVersionChan := make(chan *Dataset, len(datasetNames))
+	errChan := make(chan error, len(datasetNames))
+	sem := make(chan int, NConcurrentWorkers)
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(datasetNames))
+	defer cancel()
+
+	for _, datasetName := range datasetNames {
+		go func(dataset string) {
+			defer wg.Done()
+			select {
+			case <-ctx.Done():
+				return
+			case sem <- 1: // acquire lock
+				d, err := w.GetLatestDatasetVersion(resourceGroup, workspaceName, dataset)
+				if err != nil {
+					errChan <- err
+					cancel()
+				} else {
+					latestVersionChan <- d
+				}
+				<-sem // release lock
+			}
+		}(datasetName)
+	}
+
+	wg.Wait()
+
+	select {
+	case err := <-errChan:
+		return nil, err
+	default:
+		close(latestVersionChan)
+		for d := range latestVersionChan {
+			result = append(result, *d)
+		}
+		return result, nil
+	}
+}
+
+func (w *Workspace) GetLatestDatasetVersion(resourceGroup, workspace, datasetName string) (*Dataset, error) {
+	w.logger.Debugf("Fetching latest version of dataset %s", datasetName)
+	versions, err := w.GetDatasetVersions(resourceGroup, workspace, datasetName)
+	if err != nil {
+		return nil, err
+	}
+
+	var latestDataset Dataset
+	for _, dataset := range versions {
+		if dataset.Version > latestDataset.Version {
+			latestDataset = dataset
+		}
+	}
+
+	return &latestDataset, nil
+}
+
+func (w *Workspace) GetDatasetVersions(resourceGroup, workspace, datasetName string) ([]Dataset, error) {
+	path := fmt.Sprintf("data/%s/versions", datasetName)
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, &HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	return unmarshalDatasetVersionArray(datasetName, body), nil
+}
+
+// Return the names of the datasets of the workspace provided as argument.
+func (w *Workspace) getDatasetNames(resourceGroup, workspace string) ([]string, error) {
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet("data")
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, &HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	jsonDatastoreArray := gjson.GetBytes(body, "value").Array()
+	result := make([]string, len(jsonDatastoreArray))
+	for i, value := range jsonDatastoreArray {
+		result[i] = value.Get("name").Str
+	}
+	return result, nil
 }

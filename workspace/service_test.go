@@ -1,7 +1,9 @@
 package workspace
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
 	"net/http"
 	"os/exec"
@@ -341,4 +343,213 @@ func TestWorkspace_CreateOrUpdateDatastore(t *testing.T) {
 			a.Equal(tc.expectedError, err, tc.description)
 		}
 	}
+}
+
+func TestWorkspace_RetrieveLatestDatasetsVersions(t *testing.T) {
+	a := assert.New(t)
+	l, _ := zap.NewDevelopment()
+	logger := l.Sugar()
+	testCases := []struct {
+		testCaseName        string
+		testCaseDescription string
+		testCase            func()
+	}{
+		{
+			testCaseName: "Test empty input dataset names array",
+			testCase: func() {
+				mockedHttpClient := new(TestifyMockedHttpClient)
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				latestVersions, err := ws.retrieveLatestDatasetsVersions("", "", []string{})
+				a.Nil(err)
+				a.Empty(latestVersions)
+			},
+		},
+		{
+			testCaseName: "Test resp in error in fetching latest dataset version",
+			testCase: func() {
+				mockedResponseBody := "error"
+				mockedResponseStatusCode := http.StatusInternalServerError
+				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+				mockedDatasetList := getMockedDatasetNames(NConcurrentWorkers * 2)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				latestVersions, err := ws.retrieveLatestDatasetsVersions("", "", mockedDatasetList)
+				a.Nil(latestVersions)
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, mockedResponseBody}, err)
+			},
+		},
+		{
+			testCaseName: "Test http client returns error in fetching latest dataset version",
+			testCase: func() {
+				mockedResponseBody := ""
+				mockedResponseStatusCode := http.StatusInternalServerError
+				mockedError := fmt.Errorf("error")
+				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, mockedError)
+				mockedDatasetList := getMockedDatasetNames(NConcurrentWorkers * 2)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				latestVersions, err := ws.retrieveLatestDatasetsVersions("", "", mockedDatasetList)
+				a.Nil(latestVersions)
+				a.Equal(mockedError, err)
+			},
+		},
+		{
+			testCaseName: "Test retrieve latest datasets versions success",
+			testCase: func() {
+				mockedResponseBody := string(loadExampleResp("example_resp_get_dataset_versions.json"))
+				mockedResponseStatusCode := http.StatusOK
+				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+				mockedDatasetList := getMockedDatasetNames(NConcurrentWorkers * 2)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				latestVersions, err := ws.retrieveLatestDatasetsVersions("", "", mockedDatasetList)
+				a.NotEmpty(latestVersions)
+				a.Nil(err)
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		logger.Infof("Running test case %q", testCase.testCaseName)
+		testCase.testCase()
+	}
+}
+
+func TestWorkspace_GetLatestDatasetVersion(t *testing.T) {
+	a := assert.New(t)
+	l, _ := zap.NewDevelopment()
+	logger := l.Sugar()
+	testCases := []struct {
+		testCaseName        string
+		testCaseDescription string
+		testCase            func()
+	}{
+		{
+			testCaseName: "Test get latest version empty resp",
+			testCase: func() {
+				mockedResponseBody := ""
+				mockedResponseStatusCode := http.StatusOK
+				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				latestVersion, err := ws.GetLatestDatasetVersion("", "", "")
+				a.Nil(err)
+				a.Empty(latestVersion)
+			},
+		},
+		{
+			testCaseName: "Test get latest version http response is in error",
+			testCase: func() {
+				mockedResponseBody := "error"
+				mockedResponseStatusCode := http.StatusInternalServerError
+				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				latestVersion, err := ws.GetLatestDatasetVersion("", "", "")
+				a.Empty(latestVersion)
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, mockedResponseBody}, err)
+			},
+		},
+		{
+			testCaseName: "Test get latest version success",
+			testCase: func() {
+				mockedResponseBody := string(loadExampleResp("example_resp_get_dataset_versions.json"))
+				mockedResponseStatusCode := http.StatusOK
+				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				latestVersion, err := ws.GetLatestDatasetVersion("", "", "")
+				a.Nil(err)
+				a.Equal(4, latestVersion.Version)
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		logger.Infof("Running test case %q", testCase.testCaseName)
+		testCase.testCase()
+	}
+}
+
+func TestWorkspace_getDatasetNames(t *testing.T) {
+	a := assert.New(t)
+	l, _ := zap.NewDevelopment()
+	logger := l.Sugar()
+	testCases := []struct {
+		testCaseName        string
+		testCaseDescription string
+		testCase            func()
+	}{
+		{
+			testCaseName: "Test get dataset names http response is in error",
+			testCase: func() {
+				mockedResponseBody := "error"
+				mockedResponseStatusCode := http.StatusInternalServerError
+				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				names, err := ws.getDatasetNames("", "")
+				a.Empty(names)
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, mockedResponseBody}, err)
+			},
+		},
+		{
+			testCaseName: "Test get dataset names http client returns error",
+			testCase: func() {
+				mockedResponseBody := "error"
+				mockedError := fmt.Errorf("error")
+				mockedResponseStatusCode := http.StatusInternalServerError
+				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, mockedError)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				names, err := ws.getDatasetNames("", "")
+				a.Empty(names)
+				a.Equal(mockedError, err)
+			},
+		},
+		{
+			testCaseName: "Test get dataset names success",
+			testCase: func() {
+				mockedResponseBody := string(loadExampleResp("example_resp_get_datasets.json"))
+				mockedResponseStatusCode := http.StatusOK
+				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				names, err := ws.getDatasetNames("", "")
+				a.Nil(err)
+				a.Len(names, 3)
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		logger.Infof("Running test case %q", testCase.testCaseName)
+		testCase.testCase()
+	}
+}
+
+func getMockedDatasetNames(n int) []string {
+	result := make([]string, n)
+	for i := 0; i < n; i++ {
+		result[i] = fmt.Sprintf("dataset-%d", i)
+	}
+	return result
 }
