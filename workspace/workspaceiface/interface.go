@@ -11,4 +11,7 @@ type WorkspaceAPI interface {
 
 	// GetDatasets Return the list of datasets of the AML Workspace. For each dataset, only its latest version is returned.
 	GetDatasets(resourceGroup, workspace string) ([]workspace.Dataset, error)
+
+	// GetDatasetVersions Return all the versions of the dataset with the name provided as argument
+	GetDatasetVersions(resourceGroup, workspace, datasetName string) ([]workspace.Dataset, error)
 }

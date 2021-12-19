@@ -440,7 +440,7 @@ func TestWorkspace_GetLatestDatasetVersion(t *testing.T) {
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
 				ws := newWorkspace(builder, l)
-				latestVersion, err := ws.GetLatestDatasetVersion("", "", "")
+				latestVersion, err := ws.getLatestDatasetVersion("", "", "")
 				a.Nil(err)
 				a.Empty(latestVersion)
 			},
@@ -455,7 +455,7 @@ func TestWorkspace_GetLatestDatasetVersion(t *testing.T) {
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
 				ws := newWorkspace(builder, l)
-				latestVersion, err := ws.GetLatestDatasetVersion("", "", "")
+				latestVersion, err := ws.getLatestDatasetVersion("", "", "")
 				a.Empty(latestVersion)
 				a.Equal(&HttpResponseError{mockedResponseStatusCode, mockedResponseBody}, err)
 			},
@@ -470,7 +470,7 @@ func TestWorkspace_GetLatestDatasetVersion(t *testing.T) {
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
 				ws := newWorkspace(builder, l)
-				latestVersion, err := ws.GetLatestDatasetVersion("", "", "")
+				latestVersion, err := ws.getLatestDatasetVersion("", "", "")
 				a.Nil(err)
 				a.Equal(4, latestVersion.Version)
 			},

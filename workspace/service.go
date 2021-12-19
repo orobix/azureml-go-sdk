@@ -157,6 +157,27 @@ func (w *Workspace) GetDatasets(resourceGroup, workspace string) ([]Dataset, err
 	return w.retrieveLatestDatasetsVersions(resourceGroup, workspace, datasetNames)
 }
 
+func (w *Workspace) GetDatasetVersions(resourceGroup, workspace, datasetName string) ([]Dataset, error) {
+	path := fmt.Sprintf("data/%s/versions", datasetName)
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, &HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	return unmarshalDatasetVersionArray(datasetName, body), nil
+}
+
+// retrieveLatestDatasetsVersions For each of the dataset names provided as argument, return the respective latest version
 func (w *Workspace) retrieveLatestDatasetsVersions(resourceGroup, workspaceName string, datasetNames []string) ([]Dataset, error) {
 	var result []Dataset
 
@@ -177,7 +198,7 @@ func (w *Workspace) retrieveLatestDatasetsVersions(resourceGroup, workspaceName 
 			case <-ctx.Done():
 				return
 			case sem <- 1: // acquire lock
-				d, err := w.GetLatestDatasetVersion(resourceGroup, workspaceName, dataset)
+				d, err := w.getLatestDatasetVersion(resourceGroup, workspaceName, dataset)
 				if err != nil {
 					errChan <- err
 					cancel()
@@ -203,7 +224,8 @@ func (w *Workspace) retrieveLatestDatasetsVersions(resourceGroup, workspaceName 
 	}
 }
 
-func (w *Workspace) GetLatestDatasetVersion(resourceGroup, workspace, datasetName string) (*Dataset, error) {
+// getLatestDatasetVersion Return the latest version of the dataset with the name provided as argument
+func (w *Workspace) getLatestDatasetVersion(resourceGroup, workspace, datasetName string) (*Dataset, error) {
 	w.logger.Debugf("Fetching latest version of dataset %s", datasetName)
 	versions, err := w.GetDatasetVersions(resourceGroup, workspace, datasetName)
 	if err != nil {
@@ -218,26 +240,6 @@ func (w *Workspace) GetLatestDatasetVersion(resourceGroup, workspace, datasetNam
 	}
 
 	return &latestDataset, nil
-}
-
-func (w *Workspace) GetDatasetVersions(resourceGroup, workspace, datasetName string) ([]Dataset, error) {
-	path := fmt.Sprintf("data/%s/versions", datasetName)
-	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet(path)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, &HttpResponseError{resp.StatusCode, string(body)}
-	}
-
-	return unmarshalDatasetVersionArray(datasetName, body), nil
 }
 
 // Return the names of the datasets of the workspace provided as argument.
