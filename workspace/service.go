@@ -226,7 +226,7 @@ func (w *Workspace) retrieveLatestDatasetsVersions(resourceGroup, workspaceName 
 
 // getLatestDatasetVersion Return the latest version of the dataset with the name provided as argument
 func (w *Workspace) getLatestDatasetVersion(resourceGroup, workspace, datasetName string) (*Dataset, error) {
-	w.logger.Debugf("Fetching latest version of dataset %s", datasetName)
+	w.logger.Debugf("Fetching latest version of dataset %q", datasetName)
 	versions, err := w.GetDatasetVersions(resourceGroup, workspace, datasetName)
 	if err != nil {
 		return nil, err
@@ -244,6 +244,7 @@ func (w *Workspace) getLatestDatasetVersion(resourceGroup, workspace, datasetNam
 
 // Return the names of the datasets of the workspace provided as argument.
 func (w *Workspace) getDatasetNames(resourceGroup, workspace string) ([]string, error) {
+	w.logger.Debugf("Retrieving dataset names of workspace %q in resource group %q", workspace, resourceGroup)
 	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet("data")
 	if err != nil {
 		return nil, err

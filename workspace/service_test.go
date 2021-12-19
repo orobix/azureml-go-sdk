@@ -110,13 +110,15 @@ func TestWorkspace_GetDatastore(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		httpClient := newMockedHttpClient(
+		mockedHttpClient := new(MockedHttpClient)
+		mockedHttpClient.On("doGet", mock.Anything).Return(
 			tc.responseStatusCode,
-			loadExampleResp(tc.responseExampleName),
+			string(loadExampleResp(tc.responseExampleName)),
 			tc.httpClientError,
 		)
-		httpClientBuilder := MockedHttpClientBuilder{httpClient: httpClient}
-		workspace := newWorkspace(httpClientBuilder, &zap.Logger{})
+		httpClientBuilder := MockedHttpClientBuilder{httpClient: mockedHttpClient}
+		logger, _ := zap.NewDevelopment()
+		workspace := newWorkspace(httpClientBuilder, logger)
 		datastore, err := workspace.GetDatastore("", "", tc.datastoreName)
 		a.Equal(tc.expected, datastore, tc.description)
 		a.Equal(tc.getDatastoreError, err, tc.description)
@@ -217,13 +219,16 @@ func TestWorkspace_GetDatastores(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		httpClient := newMockedHttpClient(
+		mockedHttpClient := new(MockedHttpClient)
+		mockedHttpClient.On("doGet", mock.Anything).Return(
 			tc.responseStatusCode,
-			loadExampleResp(tc.responseExampleName),
+			string(loadExampleResp(tc.responseExampleName)),
 			tc.httpClientError,
 		)
-		httpClientBuilder := MockedHttpClientBuilder{httpClient}
-		workspace := newWorkspace(httpClientBuilder, &zap.Logger{})
+		httpClientBuilder := MockedHttpClientBuilder{mockedHttpClient}
+		logger, _ := zap.NewDevelopment()
+		workspace := newWorkspace(httpClientBuilder, logger)
+
 		datastore, err := workspace.GetDatastores("", "")
 		a.Equal(tc.expected, datastore, tc.description)
 		a.Equal(tc.getDatastoreError, err, tc.description)
@@ -270,13 +275,15 @@ func TestWorkspace_DeleteDatastore(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		httpClient := newMockedHttpClient(
+		mockedHttpClient := new(MockedHttpClient)
+		mockedHttpClient.On("doDelete", mock.Anything).Return(
 			tc.responseStatusCode,
-			[]byte(""),
+			"",
 			tc.httpClientError,
 		)
-		builder := MockedHttpClientBuilder{httpClient}
-		workspace := newWorkspace(builder, &zap.Logger{})
+		builder := MockedHttpClientBuilder{mockedHttpClient}
+		logger, _ := zap.NewDevelopment()
+		workspace := newWorkspace(builder, logger)
 		err := workspace.DeleteDatastore("", "", tc.datastoreName)
 		a.Equal(tc.expectedError, err, tc.description)
 	}
@@ -327,13 +334,15 @@ func TestWorkspace_CreateOrUpdateDatastore(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		httpClient := newMockedHttpClient(
+		mockedHttpClient := new(MockedHttpClient)
+		mockedHttpClient.On("doPut", mock.Anything, mock.Anything).Return(
 			tc.responseStatusCode,
-			loadExampleResp(tc.responseExampleName),
+			string(loadExampleResp(tc.responseExampleName)),
 			tc.httpClientError,
 		)
-		builder := MockedHttpClientBuilder{httpClient}
-		workspace := newWorkspace(builder, &zap.Logger{})
+		builder := MockedHttpClientBuilder{mockedHttpClient}
+		logger, _ := zap.NewDevelopment()
+		workspace := newWorkspace(builder, logger)
 		ds, err := workspace.CreateOrUpdateDatastore("", "", tc.inputDatastore)
 
 		if err == nil {
@@ -357,7 +366,7 @@ func TestWorkspace_RetrieveLatestDatasetsVersions(t *testing.T) {
 		{
 			testCaseName: "Test empty input dataset names array",
 			testCase: func() {
-				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient := new(MockedHttpClient)
 				builder := MockedHttpClientBuilder{mockedHttpClient}
 				ws := newWorkspace(builder, l)
 				latestVersions, err := ws.retrieveLatestDatasetsVersions("", "", []string{})
@@ -370,7 +379,7 @@ func TestWorkspace_RetrieveLatestDatasetsVersions(t *testing.T) {
 			testCase: func() {
 				mockedResponseBody := "error"
 				mockedResponseStatusCode := http.StatusInternalServerError
-				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient := new(MockedHttpClient)
 				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
 				mockedDatasetList := getMockedDatasetNames(NConcurrentWorkers * 2)
 
@@ -387,7 +396,7 @@ func TestWorkspace_RetrieveLatestDatasetsVersions(t *testing.T) {
 				mockedResponseBody := ""
 				mockedResponseStatusCode := http.StatusInternalServerError
 				mockedError := fmt.Errorf("error")
-				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient := new(MockedHttpClient)
 				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, mockedError)
 				mockedDatasetList := getMockedDatasetNames(NConcurrentWorkers * 2)
 
@@ -403,7 +412,7 @@ func TestWorkspace_RetrieveLatestDatasetsVersions(t *testing.T) {
 			testCase: func() {
 				mockedResponseBody := string(loadExampleResp("example_resp_get_dataset_versions.json"))
 				mockedResponseStatusCode := http.StatusOK
-				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient := new(MockedHttpClient)
 				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
 				mockedDatasetList := getMockedDatasetNames(NConcurrentWorkers * 2)
 
@@ -435,7 +444,7 @@ func TestWorkspace_GetLatestDatasetVersion(t *testing.T) {
 			testCase: func() {
 				mockedResponseBody := ""
 				mockedResponseStatusCode := http.StatusOK
-				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient := new(MockedHttpClient)
 				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
@@ -450,7 +459,7 @@ func TestWorkspace_GetLatestDatasetVersion(t *testing.T) {
 			testCase: func() {
 				mockedResponseBody := "error"
 				mockedResponseStatusCode := http.StatusInternalServerError
-				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient := new(MockedHttpClient)
 				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
@@ -465,7 +474,7 @@ func TestWorkspace_GetLatestDatasetVersion(t *testing.T) {
 			testCase: func() {
 				mockedResponseBody := string(loadExampleResp("example_resp_get_dataset_versions.json"))
 				mockedResponseStatusCode := http.StatusOK
-				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient := new(MockedHttpClient)
 				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
@@ -497,7 +506,7 @@ func TestWorkspace_getDatasetNames(t *testing.T) {
 			testCase: func() {
 				mockedResponseBody := "error"
 				mockedResponseStatusCode := http.StatusInternalServerError
-				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient := new(MockedHttpClient)
 				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
@@ -513,7 +522,7 @@ func TestWorkspace_getDatasetNames(t *testing.T) {
 				mockedResponseBody := "error"
 				mockedError := fmt.Errorf("error")
 				mockedResponseStatusCode := http.StatusInternalServerError
-				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient := new(MockedHttpClient)
 				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, mockedError)
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
@@ -528,7 +537,7 @@ func TestWorkspace_getDatasetNames(t *testing.T) {
 			testCase: func() {
 				mockedResponseBody := string(loadExampleResp("example_resp_get_datasets.json"))
 				mockedResponseStatusCode := http.StatusOK
-				mockedHttpClient := new(TestifyMockedHttpClient)
+				mockedHttpClient := new(MockedHttpClient)
 				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
