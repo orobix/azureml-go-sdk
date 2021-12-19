@@ -9,6 +9,12 @@ type WorkspaceAPI interface {
 	// GetDatastore Return the datastore with the name provided as argument.
 	GetDatastore(resourceGroup, workspace, datastoreName string) (*workspace.Datastore, error)
 
+	// DeleteDatastore Delete the datastore with the name provided as argument
+	DeleteDatastore(resourceGroup, workspace, datastoreName string) error
+
+	// CreateOrUpdateDatastore Create or update the datastore with the data provided as argument
+	CreateOrUpdateDatastore(resourceGroup, workspace string, datastore *workspace.Datastore) (*workspace.Datastore, error)
+
 	// GetDatasets Return the list of datasets of the AML Workspace. For each dataset, only its latest version is returned.
 	GetDatasets(resourceGroup, workspace string) ([]workspace.Dataset, error)
 
