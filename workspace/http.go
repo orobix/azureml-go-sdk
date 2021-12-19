@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	amlApiVersion          = "2021-03-01-preview"
+	amlApiVersion          = "2021-10-01"
 	amlWorkspaceApiBaseUrl = "https://management.azure.com/subscriptions/%s/resourceGroups/%s/providers/Microsoft.MachineLearningServices/workspaces/%s"
 )
 

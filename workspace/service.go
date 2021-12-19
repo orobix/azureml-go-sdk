@@ -158,7 +158,7 @@ func (w *Workspace) GetDatasets(resourceGroup, workspace string) ([]Dataset, err
 }
 
 func (w *Workspace) GetDatasetVersions(resourceGroup, workspace, datasetName string) ([]Dataset, error) {
-	path := fmt.Sprintf("data/%s/versions", datasetName)
+	path := fmt.Sprintf("datasets/%s/versions", datasetName)
 	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet(path)
 	if err != nil {
 		return nil, err
@@ -245,7 +245,7 @@ func (w *Workspace) getLatestDatasetVersion(resourceGroup, workspace, datasetNam
 // Return the names of the datasets of the workspace provided as argument.
 func (w *Workspace) getDatasetNames(resourceGroup, workspace string) ([]string, error) {
 	w.logger.Debugf("Retrieving dataset names of workspace %q in resource group %q", workspace, resourceGroup)
-	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet("data")
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet("datasets")
 	if err != nil {
 		return nil, err
 	}
