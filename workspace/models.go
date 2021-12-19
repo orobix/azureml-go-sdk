@@ -1,6 +1,9 @@
 package workspace
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type SystemData struct {
 	CreationDate     time.Time
@@ -37,10 +40,31 @@ type Datastore struct {
 }
 
 type Dataset struct {
-	Id          string
-	Name        string
-	Description string
-	DatastoreId string
-	Version     int
-	SystemData  *SystemData
+	Id             string
+	Name           string
+	Description    string
+	DatastoreId    string
+	Version        int
+	FilePaths      []DatasetPath
+	DirectoryPaths []DatasetPath
+	SystemData     *SystemData
+}
+
+type DatasetPath interface {
+	fmt.Stringer
+}
+
+type DatastorePath struct {
+	DatastoreName string
+	Path          string
+}
+
+func (d DatastorePath) String() string {
+	var cleanedPath string
+	if len(d.Path) > 0 && d.Path[0:1] == "/" {
+		cleanedPath = d.Path[1:]
+	} else {
+		cleanedPath = d.Path
+	}
+	return fmt.Sprintf("azureml://datastores/%s/paths/%s", d.DatastoreName, cleanedPath)
 }
