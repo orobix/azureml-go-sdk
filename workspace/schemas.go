@@ -28,6 +28,15 @@ type WriteDatastoreSchemaProperties struct {
 	Description string               `json:"description"`
 }
 
+type DatasetPathsSchema struct {
+	FilePath      string `json:"file,omitempty"`
+	DirectoryPath string `json:"folder,omitempty"`
+}
+type WriteDatasetSchema struct {
+	Description string               `json:"description,omitempty"`
+	Paths       []DatasetPathsSchema `json:"paths"`
+}
+
 type SchemaWrapper struct {
 	Properties interface{} `json:"properties"`
 }
