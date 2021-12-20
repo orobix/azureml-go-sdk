@@ -109,11 +109,13 @@ func unmarshalDatasetVersionArray(datasetName string, json []byte) []Dataset {
 
 func unmarshalDatasetVersion(datasetName string, json []byte) *Dataset {
 	return &Dataset{
-		Id:          gjson.GetBytes(json, "id").Str,
-		Name:        datasetName,
-		Description: gjson.GetBytes(json, "properties.description").Str,
-		DatastoreId: gjson.GetBytes(json, "properties.datastoreId").Str,
-		Version:     int(gjson.GetBytes(json, "name").Int()),
-		SystemData:  &SystemData{},
+		Id:             gjson.GetBytes(json, "id").Str,
+		Name:           datasetName,
+		Description:    gjson.GetBytes(json, "properties.description").Str,
+		DatastoreId:    gjson.GetBytes(json, "properties.datastoreId").Str,
+		Version:        int(gjson.GetBytes(json, "name").Int()),
+		FilePaths:      []DatasetPath{},
+		DirectoryPaths: []DatasetPath{},
+		SystemData:     &SystemData{},
 	}
 }

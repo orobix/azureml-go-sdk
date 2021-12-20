@@ -142,11 +142,36 @@ func (w *Workspace) CreateOrUpdateDatastore(resourceGroup, workspace string, dat
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode >= http.StatusBadRequest {
 		return nil, &HttpResponseError{resp.StatusCode, string(body)}
 	}
 
 	return unmarshalDatastore(body), err
+}
+
+func (w *Workspace) CreateOrUpdateDataset(resourceGroup, workspace string, dataset *Dataset) (*Dataset, error) {
+	if strings.TrimSpace(dataset.Name) == "" {
+		return nil, InvalidArgumentError{"the dataset name cannot be empty"}
+	}
+
+	path := fmt.Sprintf("datasets/%s/versions/%d", dataset.Name, dataset.Version)
+	schema := toWriteDatasetSchema(dataset)
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doPut(path, schema)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, &HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	return unmarshalDatasetVersion(dataset.Name, body), err
 }
 
 func (w *Workspace) GetDatasets(resourceGroup, workspace string) ([]Dataset, error) {

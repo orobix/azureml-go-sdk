@@ -20,4 +20,7 @@ type WorkspaceAPI interface {
 
 	// GetDatasetVersions Return all the versions of the dataset with the name provided as argument
 	GetDatasetVersions(resourceGroup, workspace, datasetName string) ([]workspace.Dataset, error)
+
+	// CreateOrUpdateDataset Create or update the dataset with the data provided as argument
+	CreateOrUpdateDataset(resourceGroup, workspace, dataset *workspace.Dataset) (*workspace.Dataset, error)
 }

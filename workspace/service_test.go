@@ -555,6 +555,83 @@ func TestWorkspace_getDatasetNames(t *testing.T) {
 	}
 }
 
+func TestWorkspace_CreateOrUpdateDataset(t *testing.T) {
+	a := assert.New(t)
+	l, _ := zap.NewDevelopment()
+	logger := l.Sugar()
+	testCases := []struct {
+		testCaseName        string
+		testCaseDescription string
+		testCase            func()
+	}{
+		{
+			testCaseName: "Test create or update dataset with empty name",
+			testCase: func() {
+				mockedHttpClient := new(MockedHttpClient)
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				d := &Dataset{Name: "          "}
+				updatedDataset, err := ws.CreateOrUpdateDataset("", "", d)
+				a.Nil(updatedDataset)
+				a.NotEmpty(err)
+			},
+		},
+		{
+			testCaseName: "Test create or update dataset http response 404 not found",
+			testCase: func() {
+				mockedResponseBody := "error"
+				mockedResponseStatusCode := http.StatusNotFound
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doPut", mock.Anything, mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				latestVersion, err := ws.CreateOrUpdateDataset("", "", &Dataset{Name: "foo"})
+				a.Empty(latestVersion)
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, mockedResponseBody}, err)
+			},
+		},
+		{
+			testCaseName: "Test create or update dataset http client returns error",
+			testCase: func() {
+				mockedResponseBody := "error"
+				mockedError := fmt.Errorf("error")
+				mockedResponseStatusCode := http.StatusInternalServerError
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doPut", mock.Anything, mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, mockedError)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				names, err := ws.CreateOrUpdateDataset("", "", &Dataset{Name: "foo"})
+				a.Empty(names)
+				a.Equal(mockedError, err)
+			},
+		},
+		{
+			testCaseName: "Test create or update dataset success",
+			testCase: func() {
+				mockedResponseBody := string(loadExampleResp("example_resp_create_or_update_dataset.json"))
+				mockedResponseStatusCode := http.StatusOK
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doPut", mock.Anything, mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				updatedDataset, err := ws.CreateOrUpdateDataset("", "", &Dataset{Name: "foo"})
+				a.Nil(err)
+				a.Equal("redacted", updatedDataset.Id)
+				a.Equal(1, len(updatedDataset.DirectoryPaths))
+				a.Equal(0, len(updatedDataset.FilePaths))
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		logger.Infof("Running test case %q", testCase.testCaseName)
+		testCase.testCase()
+	}
+}
+
 func getMockedDatasetNames(n int) []string {
 	result := make([]string, n)
 	for i := 0; i < n; i++ {
