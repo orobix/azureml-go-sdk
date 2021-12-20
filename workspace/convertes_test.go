@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"testing"
 	"time"
 )
@@ -152,4 +153,96 @@ func TestToWriteDatastoreSchema_NilAuth(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expected, writeSchema)
+}
+
+func TestToWriteDatasetSchema(t *testing.T) {
+	a := assert.New(t)
+	l, _ := zap.NewDevelopment()
+	logger := l.Sugar()
+
+	testCases := []struct {
+		testCaseName string
+		testCase     func()
+	}{
+		{
+			testCaseName: "Test convert empty dataset",
+			testCase: func() {
+				d := &Dataset{}
+				schema := toWriteDatasetSchema(d)
+				props := schema.Properties.(WriteDatasetSchema)
+				a.Empty(props.Description)
+				a.Empty(props.Paths)
+			},
+		},
+		{
+			testCaseName: "Test convert dataset with datastore paths",
+			testCase: func() {
+				d := &Dataset{
+					Id:          "id",
+					Name:        "name",
+					Description: "description",
+					DatastoreId: "datastore-id",
+					Version:     1,
+					FilePaths: []DatasetPath{
+						DatastorePath{
+							DatastoreName: "foo",
+							Path:          "file.json",
+						},
+						DatastorePath{
+							DatastoreName: "foo2",
+							Path:          "file2.json",
+						},
+						DatastorePath{
+							DatastoreName: "foo3",
+							Path:          "file3.json",
+						},
+					},
+					DirectoryPaths: []DatasetPath{
+						DatastorePath{
+							DatastoreName: "foo1",
+							Path:          "/dir1",
+						},
+						DatastorePath{
+							DatastoreName: "foo2",
+							Path:          "/dir2",
+						},
+					},
+					SystemData: &SystemData{},
+				}
+				props := toWriteDatasetSchema(d)
+				writeSchema := props.Properties.(WriteDatasetSchema)
+
+				a.Equal(d.Description, writeSchema.Description)
+				a.Equal(len(d.DirectoryPaths)+len(d.FilePaths), len(writeSchema.Paths))
+			},
+		},
+		{
+			testCaseName: "Test datastore directory paths conversion",
+			testCase: func() {
+				d := &Dataset{
+					DirectoryPaths: []DatasetPath{
+						DatastorePath{
+							DatastoreName: "datastore",
+							Path:          "/foo/bar/",
+						},
+					},
+				}
+				props := toWriteDatasetSchema(d)
+				schema := props.Properties.(WriteDatasetSchema)
+				schemaPath := schema.Paths[0]
+				a.Empty(schemaPath.FilePath)
+				a.Equal(d.DirectoryPaths[0].String(), schemaPath.DirectoryPath)
+			},
+		},
+		{
+			testCaseName: "Test file paths conversion",
+			testCase: func() {
+
+			},
+		},
+	}
+	for _, test := range testCases {
+		logger.Infof("Running test %q", test.testCaseName)
+		test.testCase()
+	}
 }

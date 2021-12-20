@@ -80,6 +80,23 @@ func toWriteDatastoreSchema(datastore *Datastore) *SchemaWrapper {
 	}
 }
 
+func toWriteDatasetSchema(dataset *Dataset) *SchemaWrapper {
+	pathSchemas := make([]DatasetPathsSchema, len(dataset.FilePaths)+len(dataset.DirectoryPaths))
+	for i, filePath := range dataset.FilePaths {
+		pathSchemas[i] = DatasetPathsSchema{FilePath: filePath.String()}
+	}
+	for i, directoryPath := range dataset.DirectoryPaths {
+		pathSchemas[i] = DatasetPathsSchema{DirectoryPath: directoryPath.String()}
+	}
+
+	return &SchemaWrapper{
+		Properties: WriteDatasetSchema{
+			Description: dataset.Description,
+			Paths:       pathSchemas,
+		},
+	}
+}
+
 func unmarshalDatasetVersionArray(datasetName string, json []byte) []Dataset {
 	jsonDatasetArray := gjson.GetBytes(json, "value").Array()
 	datasetSlice := make([]Dataset, gjson.GetBytes(json, "value.#").Int())
