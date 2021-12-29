@@ -1,8 +1,13 @@
 package workspace
 
 import (
+	"fmt"
 	"github.com/tidwall/gjson"
+	"regexp"
+	"strings"
 )
+
+const datastorePathPrefix = "azureml://datastores/"
 
 func unmarshalDatastoreArray(json []byte) []Datastore {
 	jsonDatastoreArray := gjson.GetBytes(json, "value").Array()
@@ -114,8 +119,36 @@ func unmarshalDatasetVersion(datasetName string, json []byte) *Dataset {
 		Description:    gjson.GetBytes(json, "properties.description").Str,
 		DatastoreId:    gjson.GetBytes(json, "properties.datastoreId").Str,
 		Version:        int(gjson.GetBytes(json, "name").Int()),
-		FilePaths:      []DatasetPath{},
-		DirectoryPaths: []DatasetPath{},
+		FilePaths:      unmarshalDatasetPaths(gjson.GetBytes(json, "properties.paths"), "file"),
+		DirectoryPaths: unmarshalDatasetPaths(gjson.GetBytes(json, "properties.paths"), "folder"),
 		SystemData:     &SystemData{},
+	}
+}
+
+func unmarshalDatasetPaths(jsonDatasetPaths gjson.Result, pathType string) []DatasetPath {
+	result := make([]DatasetPath, 0)
+	jsonDatasetPaths.ForEach(func(key, value gjson.Result) bool {
+		path := value.Get(pathType)
+		if path.Exists() == false {
+			return false // TODO: log error
+		}
+		if path.Type != gjson.Null {
+			isDatastorePath, _ := regexp.MatchString(fmt.Sprintf("%s.*", datastorePathPrefix), path.Str)
+			if isDatastorePath == true {
+				result = append(result, extractDatastorePath(path.Str))
+			}
+		}
+		return true
+	})
+	return result
+}
+
+func extractDatastorePath(path string) *DatastorePath {
+	datastoreNameWithPath := strings.TrimPrefix(path, datastorePathPrefix)
+	parts := strings.Split(datastoreNameWithPath, "/")
+	datastoreName := parts[0]
+	return &DatastorePath{
+		DatastoreName: datastoreName,
+		Path:          strings.Join(parts[2:], "/"),
 	}
 }

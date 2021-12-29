@@ -1,7 +1,9 @@
 package workspace
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/tidwall/gjson"
 	"go.uber.org/zap"
 	"testing"
 	"time"
@@ -241,6 +243,73 @@ func TestToWriteDatasetSchema(t *testing.T) {
 			},
 		},
 	}
+	for _, test := range testCases {
+		logger.Infof("Running test %q", test.testCaseName)
+		test.testCase()
+	}
+}
+
+func TestUnmarshalDatasetPaths(t *testing.T) {
+	a := assert.New(t)
+	l, _ := zap.NewDevelopment()
+	logger := l.Sugar()
+
+	testCases := []struct {
+		testCaseName string
+		testCase     func()
+	}{
+		{
+			testCaseName: "Test unmarshal dataset paths empty list",
+			testCase: func() {
+				paths := gjson.Parse("[]")
+				result := unmarshalDatasetPaths(paths, "")
+				a.Empty(result)
+			},
+		},
+		{
+			testCaseName: "Test unmarshal dataset paths invalid path type",
+			testCase: func() {
+				paths := gjson.Parse("[{\"file\": null, \"folder\": \"azureml://datastores/datastore/foo\"}]")
+				result := unmarshalDatasetPaths(paths, "foo")
+				a.Empty(result)
+			},
+		},
+		{
+			testCaseName: "Test unmarshal dataset paths not matching datastore regex",
+			testCase: func() {
+				paths := gjson.Parse("[{\"file\": null, \"folder\": \"path\"}]")
+				result := unmarshalDatasetPaths(paths, "folder")
+				a.Empty(result)
+			},
+		},
+		{
+			testCaseName: "Test unmarshal dataset folder datastore paths",
+			testCase: func() {
+				firstPath := "azureml://datastores/datastore/paths/path/bar"
+				secondPath := "azureml://datastores/datastore2/paths/foo2"
+				paths := gjson.Parse(fmt.Sprintf("[{\"file\": null, \"folder\": \"%s\"}, {\"file\": null, \"folder\": \"%s\"}]", firstPath, secondPath))
+				filePaths := unmarshalDatasetPaths(paths, "file")
+				folderPaths := unmarshalDatasetPaths(paths, "folder")
+				a.Empty(filePaths)
+				a.Equal(2, len(folderPaths))
+				a.Equal(firstPath, folderPaths[0].String())
+			},
+		},
+		{
+			testCaseName: "Test unmarshal dataset file datastore paths",
+			testCase: func() {
+				firstPath := "azureml://datastores/datastore/paths/foo/bar/foo"
+				secondPath := "azureml://datastores/datastore2/paths/foo2"
+				paths := gjson.Parse(fmt.Sprintf("[{\"folder\": null, \"file\": \"%s\"}, {\"folder\": null, \"file\": \"%s\"}]", firstPath, secondPath))
+				folderPaths := unmarshalDatasetPaths(paths, "folder")
+				filePaths := unmarshalDatasetPaths(paths, "file")
+				a.Empty(folderPaths)
+				a.Equal(2, len(filePaths))
+				a.Equal(firstPath, filePaths[0].String())
+			},
+		},
+	}
+
 	for _, test := range testCases {
 		logger.Infof("Running test %q", test.testCaseName)
 		test.testCase()
