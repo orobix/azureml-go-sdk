@@ -17,14 +17,6 @@ func unmarshalDatastoreArray(json []byte) []Datastore {
 }
 
 func unmarshalDatastore(json []byte) *Datastore {
-	sysData := SystemData{
-		CreationDate:         gjson.GetBytes(json, "systemData.createdAt").Time(),
-		CreationUserType:     gjson.GetBytes(json, "systemData.createdByType").Str,
-		CreationUser:         gjson.GetBytes(json, "systemData.createdBy").Str,
-		LastModifiedDate:     gjson.GetBytes(json, "systemData.lastModifiedAt").Time(),
-		LastModifiedUserType: gjson.GetBytes(json, "systemData.lastModifiedByType").Str,
-		LastModifiedUser:     gjson.GetBytes(json, "systemData.lastModifiedBy").Str,
-	}
 	auth := DatastoreAuth{
 		CredentialsType: gjson.GetBytes(json, "properties.contents.credentials.credentialsType").Str,
 		TenantId:        gjson.GetBytes(json, "properties.contents.credentials.tenantId").Str,
@@ -43,8 +35,65 @@ func unmarshalDatastore(json []byte) *Datastore {
 		StorageContainerName: gjson.GetBytes(json, "properties.contents.containerName").Str,
 		StorageType:          gjson.GetBytes(json, "properties.contents.contentsType").Str,
 
-		SystemData: &sysData,
+		SystemData: unmarshalSystemData(json),
 		Auth:       &auth,
+	}
+}
+
+func unmarshalDatasetVersionArray(datasetName string, json []byte) []Dataset {
+	jsonDatasetArray := gjson.GetBytes(json, "value").Array()
+	datasetSlice := make([]Dataset, gjson.GetBytes(json, "value.#").Int())
+	for i, jsonDataset := range jsonDatasetArray {
+		dataset := unmarshalDatasetVersion(datasetName, []byte(jsonDataset.Raw))
+		datasetSlice[i] = *dataset
+	}
+	return datasetSlice
+}
+
+func unmarshalDatasetVersion(datasetName string, json []byte) *Dataset {
+	return &Dataset{
+		Id:             gjson.GetBytes(json, "id").Str,
+		Name:           datasetName,
+		Description:    gjson.GetBytes(json, "properties.description").Str,
+		DatastoreId:    gjson.GetBytes(json, "properties.datastoreId").Str,
+		Version:        int(gjson.GetBytes(json, "name").Int()),
+		FilePaths:      unmarshalDatasetPaths(gjson.GetBytes(json, "properties.paths"), "file"),
+		DirectoryPaths: unmarshalDatasetPaths(gjson.GetBytes(json, "properties.paths"), "folder"),
+		SystemData:     unmarshalSystemData(json),
+	}
+}
+
+func unmarshalDatasetPaths(jsonDatasetPaths gjson.Result, pathType string) []DatasetPath {
+	result := make([]DatasetPath, 0)
+	jsonDatasetPaths.ForEach(func(key, value gjson.Result) bool {
+		path := value.Get(pathType)
+		if path.Exists() == false {
+			return false // TODO: log error
+		}
+		if path.Type != gjson.Null {
+			isDatastorePath, _ := regexp.MatchString(fmt.Sprintf("%s.*", datastorePathPrefix), path.Str)
+			if isDatastorePath == true {
+				datastorePath, err := NewDatastorePath(path.Str)
+				if err != nil {
+					// TODO: log error
+				} else {
+					result = append(result, datastorePath)
+				}
+			}
+		}
+		return true
+	})
+	return result
+}
+
+func unmarshalSystemData(json []byte) *SystemData {
+	return &SystemData{
+		CreationDate:         gjson.GetBytes(json, "systemData.createdAt").Time(),
+		CreationUserType:     gjson.GetBytes(json, "systemData.createdByType").Str,
+		CreationUser:         gjson.GetBytes(json, "systemData.createdBy").Str,
+		LastModifiedDate:     gjson.GetBytes(json, "systemData.lastModifiedAt").Time(),
+		LastModifiedUserType: gjson.GetBytes(json, "systemData.lastModifiedByType").Str,
+		LastModifiedUser:     gjson.GetBytes(json, "systemData.lastModifiedBy").Str,
 	}
 }
 
@@ -97,50 +146,4 @@ func toWriteDatasetSchema(dataset *Dataset) *SchemaWrapper {
 			Paths:       pathSchemas,
 		},
 	}
-}
-
-func unmarshalDatasetVersionArray(datasetName string, json []byte) []Dataset {
-	jsonDatasetArray := gjson.GetBytes(json, "value").Array()
-	datasetSlice := make([]Dataset, gjson.GetBytes(json, "value.#").Int())
-	for i, jsonDataset := range jsonDatasetArray {
-		dataset := unmarshalDatasetVersion(datasetName, []byte(jsonDataset.Raw))
-		datasetSlice[i] = *dataset
-	}
-	return datasetSlice
-}
-
-func unmarshalDatasetVersion(datasetName string, json []byte) *Dataset {
-	return &Dataset{
-		Id:             gjson.GetBytes(json, "id").Str,
-		Name:           datasetName,
-		Description:    gjson.GetBytes(json, "properties.description").Str,
-		DatastoreId:    gjson.GetBytes(json, "properties.datastoreId").Str,
-		Version:        int(gjson.GetBytes(json, "name").Int()),
-		FilePaths:      unmarshalDatasetPaths(gjson.GetBytes(json, "properties.paths"), "file"),
-		DirectoryPaths: unmarshalDatasetPaths(gjson.GetBytes(json, "properties.paths"), "folder"),
-		SystemData:     &SystemData{},
-	}
-}
-
-func unmarshalDatasetPaths(jsonDatasetPaths gjson.Result, pathType string) []DatasetPath {
-	result := make([]DatasetPath, 0)
-	jsonDatasetPaths.ForEach(func(key, value gjson.Result) bool {
-		path := value.Get(pathType)
-		if path.Exists() == false {
-			return false // TODO: log error
-		}
-		if path.Type != gjson.Null {
-			isDatastorePath, _ := regexp.MatchString(fmt.Sprintf("%s.*", datastorePathPrefix), path.Str)
-			if isDatastorePath == true {
-				datastorePath, err := NewDatastorePath(path.Str)
-				if err != nil {
-					// TODO: log error
-				} else {
-					result = append(result, datastorePath)
-				}
-			}
-		}
-		return true
-	})
-	return result
 }
