@@ -2,8 +2,11 @@ package workspace
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
+
+const datastorePathPrefix = "azureml://datastores/"
 
 type SystemData struct {
 	CreationDate     time.Time
@@ -57,6 +60,22 @@ type DatasetPath interface {
 type DatastorePath struct {
 	DatastoreName string
 	Path          string
+}
+
+func NewDatastorePath(path string) (*DatastorePath, error) {
+	datastoreNameWithPath := strings.TrimPrefix(path, datastorePathPrefix)
+	parts := strings.Split(datastoreNameWithPath, "/")
+	if len(parts) < 3 {
+		return nil, fmt.Errorf(
+			"malformed path, datastore path sould be in the format %s/<datastore-name>/paths/<path>",
+			datastorePathPrefix,
+		)
+	}
+	datastoreName := parts[0]
+	return &DatastorePath{
+		DatastoreName: datastoreName,
+		Path:          strings.Join(parts[2:], "/"),
+	}, nil
 }
 
 func (d DatastorePath) String() string {

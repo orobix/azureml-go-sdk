@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"testing"
@@ -48,6 +49,28 @@ func TestDatastorePath(t *testing.T) {
 				}
 
 				a.Equal("azureml://datastores//paths/", datastorePath.String())
+			},
+		},
+		{
+			testCaseName: "Test NewDatastorePath malformed path",
+			testCase: func() {
+				datastorePath, err := NewDatastorePath("foo/bar")
+				a.Nil(datastorePath)
+				a.NotNil(err)
+			},
+		},
+		{
+			testCaseName: "Test NewDatastorePath well-formed path",
+			testCase: func() {
+				datastoreName := "datastore1"
+				path := "foo/bar/foo"
+				datastorePath, err := NewDatastorePath(
+					fmt.Sprintf("azureml://datastores/%s/paths/%s", datastoreName, path),
+				)
+				a.Nil(err)
+				a.NotNil(datastorePath)
+				a.Equal(datastoreName, datastorePath.DatastoreName)
+				a.Equal(path, datastorePath.Path)
 			},
 		},
 	}

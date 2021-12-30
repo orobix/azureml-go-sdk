@@ -308,6 +308,19 @@ func TestUnmarshalDatasetPaths(t *testing.T) {
 				a.Equal(firstPath, filePaths[0].String())
 			},
 		},
+		{
+			testCaseName: "Test unmarshal dataset malformed datastore paths",
+			testCase: func() {
+				firstPath := "azureml://datastores/datastore/paths/foo/bar/foo"
+				secondPath := "azureml://datastores/malformed"
+				paths := gjson.Parse(fmt.Sprintf("[{\"folder\": null, \"file\": \"%s\"}, {\"folder\": null, \"file\": \"%s\"}]", firstPath, secondPath))
+				folderPaths := unmarshalDatasetPaths(paths, "folder")
+				filePaths := unmarshalDatasetPaths(paths, "file")
+				a.Empty(folderPaths)
+				a.Equal(1, len(filePaths))
+				a.Equal(firstPath, filePaths[0].String())
+			},
+		},
 	}
 
 	for _, test := range testCases {

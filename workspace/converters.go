@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"github.com/tidwall/gjson"
 	"regexp"
-	"strings"
 )
-
-const datastorePathPrefix = "azureml://datastores/"
 
 func unmarshalDatastoreArray(json []byte) []Datastore {
 	jsonDatastoreArray := gjson.GetBytes(json, "value").Array()
@@ -135,20 +132,15 @@ func unmarshalDatasetPaths(jsonDatasetPaths gjson.Result, pathType string) []Dat
 		if path.Type != gjson.Null {
 			isDatastorePath, _ := regexp.MatchString(fmt.Sprintf("%s.*", datastorePathPrefix), path.Str)
 			if isDatastorePath == true {
-				result = append(result, extractDatastorePath(path.Str))
+				datastorePath, err := NewDatastorePath(path.Str)
+				if err != nil {
+					// TODO: log error
+				} else {
+					result = append(result, datastorePath)
+				}
 			}
 		}
 		return true
 	})
 	return result
-}
-
-func extractDatastorePath(path string) *DatastorePath {
-	datastoreNameWithPath := strings.TrimPrefix(path, datastorePathPrefix)
-	parts := strings.Split(datastoreNameWithPath, "/")
-	datastoreName := parts[0]
-	return &DatastorePath{
-		DatastoreName: datastoreName,
-		Path:          strings.Join(parts[2:], "/"),
-	}
 }
