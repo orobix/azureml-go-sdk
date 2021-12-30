@@ -15,6 +15,7 @@ import (
 type Workspace struct {
 	httpClientBuilder HttpClientBuilderAPI
 	logger            *zap.SugaredLogger
+	datasetConverter  *DatasetConverter
 }
 
 type Config struct {
@@ -53,9 +54,11 @@ func New(config Config, debug bool) (*Workspace, error) {
 }
 
 func newWorkspace(clientBuilder HttpClientBuilderAPI, logger *zap.Logger) *Workspace {
+	sugarLogger := logger.Sugar()
 	return &Workspace{
 		httpClientBuilder: clientBuilder,
-		logger:            logger.Sugar(),
+		logger:            sugarLogger,
+		datasetConverter:  &DatasetConverter{sugarLogger},
 	}
 }
 
@@ -171,7 +174,7 @@ func (w *Workspace) CreateOrUpdateDataset(resourceGroup, workspace string, datas
 		return nil, &HttpResponseError{resp.StatusCode, string(body)}
 	}
 
-	return unmarshalDatasetVersion(dataset.Name, body), err
+	return w.datasetConverter.unmarshalDatasetVersion(dataset.Name, body), err
 }
 
 func (w *Workspace) GetDatasets(resourceGroup, workspace string) ([]Dataset, error) {
@@ -199,7 +202,7 @@ func (w *Workspace) GetDatasetVersions(resourceGroup, workspace, datasetName str
 		return nil, &HttpResponseError{resp.StatusCode, string(body)}
 	}
 
-	return unmarshalDatasetVersionArray(datasetName, body), nil
+	return w.datasetConverter.unmarshalDatasetVersionArray(datasetName, body), nil
 }
 
 // retrieveLatestDatasetsVersions For each of the dataset names provided as argument, return the respective latest version

@@ -253,6 +253,7 @@ func TestUnmarshalDatasetPaths(t *testing.T) {
 	a := assert.New(t)
 	l, _ := zap.NewDevelopment()
 	logger := l.Sugar()
+	converter := &DatasetConverter{logger: logger}
 
 	testCases := []struct {
 		testCaseName string
@@ -262,7 +263,7 @@ func TestUnmarshalDatasetPaths(t *testing.T) {
 			testCaseName: "Test unmarshal dataset paths empty list",
 			testCase: func() {
 				paths := gjson.Parse("[]")
-				result := unmarshalDatasetPaths(paths, "")
+				result := converter.unmarshalDatasetPaths(paths, "")
 				a.Empty(result)
 			},
 		},
@@ -270,7 +271,7 @@ func TestUnmarshalDatasetPaths(t *testing.T) {
 			testCaseName: "Test unmarshal dataset paths invalid path type",
 			testCase: func() {
 				paths := gjson.Parse("[{\"file\": null, \"folder\": \"azureml://datastores/datastore/foo\"}]")
-				result := unmarshalDatasetPaths(paths, "foo")
+				result := converter.unmarshalDatasetPaths(paths, "foo")
 				a.Empty(result)
 			},
 		},
@@ -278,7 +279,7 @@ func TestUnmarshalDatasetPaths(t *testing.T) {
 			testCaseName: "Test unmarshal dataset paths not matching datastore regex",
 			testCase: func() {
 				paths := gjson.Parse("[{\"file\": null, \"folder\": \"path\"}]")
-				result := unmarshalDatasetPaths(paths, "folder")
+				result := converter.unmarshalDatasetPaths(paths, "folder")
 				a.Empty(result)
 			},
 		},
@@ -288,8 +289,8 @@ func TestUnmarshalDatasetPaths(t *testing.T) {
 				firstPath := "azureml://datastores/datastore/paths/path/bar"
 				secondPath := "azureml://datastores/datastore2/paths/foo2"
 				paths := gjson.Parse(fmt.Sprintf("[{\"file\": null, \"folder\": \"%s\"}, {\"file\": null, \"folder\": \"%s\"}]", firstPath, secondPath))
-				filePaths := unmarshalDatasetPaths(paths, "file")
-				folderPaths := unmarshalDatasetPaths(paths, "folder")
+				filePaths := converter.unmarshalDatasetPaths(paths, "file")
+				folderPaths := converter.unmarshalDatasetPaths(paths, "folder")
 				a.Empty(filePaths)
 				a.Equal(2, len(folderPaths))
 				a.Equal(firstPath, folderPaths[0].String())
@@ -301,8 +302,8 @@ func TestUnmarshalDatasetPaths(t *testing.T) {
 				firstPath := "azureml://datastores/datastore/paths/foo/bar/foo"
 				secondPath := "azureml://datastores/datastore2/paths/foo2"
 				paths := gjson.Parse(fmt.Sprintf("[{\"folder\": null, \"file\": \"%s\"}, {\"folder\": null, \"file\": \"%s\"}]", firstPath, secondPath))
-				folderPaths := unmarshalDatasetPaths(paths, "folder")
-				filePaths := unmarshalDatasetPaths(paths, "file")
+				folderPaths := converter.unmarshalDatasetPaths(paths, "folder")
+				filePaths := converter.unmarshalDatasetPaths(paths, "file")
 				a.Empty(folderPaths)
 				a.Equal(2, len(filePaths))
 				a.Equal(firstPath, filePaths[0].String())
@@ -314,8 +315,8 @@ func TestUnmarshalDatasetPaths(t *testing.T) {
 				firstPath := "azureml://datastores/datastore/paths/foo/bar/foo"
 				secondPath := "azureml://datastores/malformed"
 				paths := gjson.Parse(fmt.Sprintf("[{\"folder\": null, \"file\": \"%s\"}, {\"folder\": null, \"file\": \"%s\"}]", firstPath, secondPath))
-				folderPaths := unmarshalDatasetPaths(paths, "folder")
-				filePaths := unmarshalDatasetPaths(paths, "file")
+				folderPaths := converter.unmarshalDatasetPaths(paths, "folder")
+				filePaths := converter.unmarshalDatasetPaths(paths, "file")
 				a.Empty(folderPaths)
 				a.Equal(1, len(filePaths))
 				a.Equal(firstPath, filePaths[0].String())

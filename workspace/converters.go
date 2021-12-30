@@ -3,6 +3,7 @@ package workspace
 import (
 	"fmt"
 	"github.com/tidwall/gjson"
+	"go.uber.org/zap"
 	"regexp"
 )
 
@@ -40,42 +41,47 @@ func unmarshalDatastore(json []byte) *Datastore {
 	}
 }
 
-func unmarshalDatasetVersionArray(datasetName string, json []byte) []Dataset {
+type DatasetConverter struct {
+	logger *zap.SugaredLogger
+}
+
+func (d DatasetConverter) unmarshalDatasetVersionArray(datasetName string, json []byte) []Dataset {
 	jsonDatasetArray := gjson.GetBytes(json, "value").Array()
 	datasetSlice := make([]Dataset, gjson.GetBytes(json, "value.#").Int())
 	for i, jsonDataset := range jsonDatasetArray {
-		dataset := unmarshalDatasetVersion(datasetName, []byte(jsonDataset.Raw))
+		dataset := d.unmarshalDatasetVersion(datasetName, []byte(jsonDataset.Raw))
 		datasetSlice[i] = *dataset
 	}
 	return datasetSlice
 }
 
-func unmarshalDatasetVersion(datasetName string, json []byte) *Dataset {
+func (d DatasetConverter) unmarshalDatasetVersion(datasetName string, json []byte) *Dataset {
 	return &Dataset{
 		Id:             gjson.GetBytes(json, "id").Str,
 		Name:           datasetName,
 		Description:    gjson.GetBytes(json, "properties.description").Str,
 		DatastoreId:    gjson.GetBytes(json, "properties.datastoreId").Str,
 		Version:        int(gjson.GetBytes(json, "name").Int()),
-		FilePaths:      unmarshalDatasetPaths(gjson.GetBytes(json, "properties.paths"), "file"),
-		DirectoryPaths: unmarshalDatasetPaths(gjson.GetBytes(json, "properties.paths"), "folder"),
+		FilePaths:      d.unmarshalDatasetPaths(gjson.GetBytes(json, "properties.paths"), "file"),
+		DirectoryPaths: d.unmarshalDatasetPaths(gjson.GetBytes(json, "properties.paths"), "folder"),
 		SystemData:     unmarshalSystemData(json),
 	}
 }
 
-func unmarshalDatasetPaths(jsonDatasetPaths gjson.Result, pathType string) []DatasetPath {
+func (d DatasetConverter) unmarshalDatasetPaths(jsonDatasetPaths gjson.Result, pathType string) []DatasetPath {
 	result := make([]DatasetPath, 0)
 	jsonDatasetPaths.ForEach(func(key, value gjson.Result) bool {
 		path := value.Get(pathType)
 		if path.Exists() == false {
-			return false // TODO: log error
+			d.logger.Errorf("cannot unmarshal dataset path: path type %q does exist", pathType)
+			return false
 		}
 		if path.Type != gjson.Null {
 			isDatastorePath, _ := regexp.MatchString(fmt.Sprintf("%s.*", datastorePathPrefix), path.Str)
 			if isDatastorePath == true {
 				datastorePath, err := NewDatastorePath(path.Str)
 				if err != nil {
-					// TODO: log error
+					d.logger.Errorf("error unmarshalling dataset path: %s", err.Error())
 				} else {
 					result = append(result, datastorePath)
 				}
