@@ -53,5 +53,5 @@ datastores, err := ws.GetDatastores( "rg-name", "workspace-name" )
 ### Get a specific Datastore of a workspace
 
 ```go
-datastore, err := ws.GetDatastores( "rg-name", "workspace-name", "datastore-name" )
+datastore, err := ws.GetDatastore( "rg-name", "workspace-name", "datastore-name" )
 ```
