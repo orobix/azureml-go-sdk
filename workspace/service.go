@@ -317,5 +317,21 @@ func (w *Workspace) GetDataset(resourceGroup, workspace, name string, version in
 }
 
 func (w *Workspace) GetDatasetNextVersion(resourceGroup, workspace, name string) (int, error) {
-	panic("implement me")
+	path := fmt.Sprintf("datasets/%s/versions", name)
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doGet(path)
+	if err != nil {
+		return -1, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return -1, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return -1, &HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	return w.datasetConverter.unmarshalDatasetNextVersion(body), nil
 }

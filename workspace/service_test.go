@@ -709,6 +709,82 @@ func TestWorkspace_GetDataset(t *testing.T) {
 		testCase.testCase()
 	}
 }
+func TestWorkspace_GetDatasetNextVersion(t *testing.T) {
+	a := assert.New(t)
+	l, _ := zap.NewDevelopment()
+	logger := l.Sugar()
+	testCases := []struct {
+		testCaseName        string
+		testCaseDescription string
+		testCase            func()
+	}{
+		{
+			testCaseName: "Test get dataset next version not found resp",
+			testCase: func() {
+				mockedResponseBody := "not found"
+				mockedResponseStatusCode := http.StatusNotFound
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				nextVersion, err := ws.GetDatasetNextVersion("rg", "ws", "dataset")
+				a.Equal(-1, nextVersion)
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, mockedResponseBody}, err)
+			},
+		},
+		{
+			testCaseName: "Test get dataset next version http response is in error",
+			testCase: func() {
+				mockedResponseBody := "error"
+				mockedResponseStatusCode := http.StatusInternalServerError
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				nextVersion, err := ws.GetDatasetNextVersion("rg", "ws", "dataset")
+				a.Equal(-1, nextVersion)
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, mockedResponseBody}, err)
+			},
+		},
+		{
+			testCaseName: "Test get dataset next version http client is in error",
+			testCase: func() {
+				clientErrorMsg := "error"
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(1, "", fmt.Errorf(clientErrorMsg))
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				nextVesion, err := ws.GetDatasetNextVersion("rg", "ws", "dataset")
+				a.Equal(-1, nextVesion)
+				a.Equal(clientErrorMsg, err.Error())
+			},
+		},
+		{
+			testCaseName: "Test get dataset next version success",
+			testCase: func() {
+				mockedResponseBody := string(loadExampleResp("example_resp_get_dataset_next_version.json"))
+				mockedResponseStatusCode := http.StatusOK
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				nextVersion, err := ws.GetDatasetNextVersion("rg", "ws", "dataset")
+				a.Nil(err)
+				a.Equal(8, nextVersion)
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		logger.Infof("Running test case %q", testCase.testCaseName)
+		testCase.testCase()
+	}
+}
+
 func getMockedDatasetNames(n int) []string {
 	result := make([]string, n)
 	for i := 0; i < n; i++ {

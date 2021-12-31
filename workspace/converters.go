@@ -68,6 +68,10 @@ func (d DatasetConverter) unmarshalDatasetVersion(datasetName string, json []byt
 	}
 }
 
+func (d DatasetConverter) unmarshalDatasetNextVersion(json []byte) int {
+	return int(gjson.GetBytes(json, "properties.nextVersion").Int())
+}
+
 func (d DatasetConverter) unmarshalDatasetPaths(jsonDatasetPaths gjson.Result, pathType string) []DatasetPath {
 	result := make([]DatasetPath, 0)
 	jsonDatasetPaths.ForEach(func(key, value gjson.Result) bool {
