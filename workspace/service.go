@@ -156,6 +156,9 @@ func (w *Workspace) CreateOrUpdateDataset(resourceGroup, workspace string, datas
 	if strings.TrimSpace(dataset.Name) == "" {
 		return nil, InvalidArgumentError{"the dataset name cannot be empty"}
 	}
+	if len(dataset.FilePaths)+len(dataset.DirectoryPaths) == 0 {
+		return nil, InvalidArgumentError{"the dataset must have at least one path"}
+	}
 
 	path := fmt.Sprintf("datasets/%s/versions/%d", dataset.Name, dataset.Version)
 	schema := toWriteDatasetSchema(dataset)

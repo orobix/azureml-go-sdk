@@ -577,6 +577,18 @@ func TestWorkspace_CreateOrUpdateDataset(t *testing.T) {
 			},
 		},
 		{
+			testCaseName: "Test create or update dataset with empty paths",
+			testCase: func() {
+				mockedHttpClient := new(MockedHttpClient)
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				d := &Dataset{Name: "foo"}
+				updatedDataset, err := ws.CreateOrUpdateDataset("", "", d)
+				a.Nil(updatedDataset)
+				a.NotEmpty(err)
+			},
+		},
+		{
 			testCaseName: "Test create or update dataset http response 404 not found",
 			testCase: func() {
 				mockedResponseBody := "error"
@@ -586,7 +598,7 @@ func TestWorkspace_CreateOrUpdateDataset(t *testing.T) {
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
 				ws := newWorkspace(builder, l)
-				latestVersion, err := ws.CreateOrUpdateDataset("", "", &Dataset{Name: "foo"})
+				latestVersion, err := ws.CreateOrUpdateDataset("", "", getMockedDataset())
 				a.Empty(latestVersion)
 				a.Equal(&HttpResponseError{mockedResponseStatusCode, mockedResponseBody}, err)
 			},
@@ -602,7 +614,7 @@ func TestWorkspace_CreateOrUpdateDataset(t *testing.T) {
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
 				ws := newWorkspace(builder, l)
-				names, err := ws.CreateOrUpdateDataset("", "", &Dataset{Name: "foo"})
+				names, err := ws.CreateOrUpdateDataset("", "", getMockedDataset())
 				a.Empty(names)
 				a.Equal(mockedError, err)
 			},
@@ -617,7 +629,7 @@ func TestWorkspace_CreateOrUpdateDataset(t *testing.T) {
 
 				builder := MockedHttpClientBuilder{mockedHttpClient}
 				ws := newWorkspace(builder, l)
-				updatedDataset, err := ws.CreateOrUpdateDataset("", "", &Dataset{Name: "foo"})
+				updatedDataset, err := ws.CreateOrUpdateDataset("", "", getMockedDataset())
 				a.Nil(err)
 				a.Equal("redacted", updatedDataset.Id)
 				a.Equal(1, len(updatedDataset.DirectoryPaths))
@@ -709,6 +721,7 @@ func TestWorkspace_GetDataset(t *testing.T) {
 		testCase.testCase()
 	}
 }
+
 func TestWorkspace_GetDatasetNextVersion(t *testing.T) {
 	a := assert.New(t)
 	l, _ := zap.NewDevelopment()
@@ -791,4 +804,16 @@ func getMockedDatasetNames(n int) []string {
 		result[i] = fmt.Sprintf("dataset-%d", i)
 	}
 	return result
+}
+
+func getMockedDataset() *Dataset {
+	return &Dataset{
+		Name: "foo",
+		FilePaths: []DatasetPath{
+			DatastorePath{
+				DatastoreName: "datastore",
+				Path:          "azureml://datastores/datastore/paths/foo/bar/foo",
+			},
+		},
+	}
 }
