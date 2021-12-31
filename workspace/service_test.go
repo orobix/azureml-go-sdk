@@ -632,6 +632,83 @@ func TestWorkspace_CreateOrUpdateDataset(t *testing.T) {
 	}
 }
 
+func TestWorkspace_GetDataset(t *testing.T) {
+	a := assert.New(t)
+	l, _ := zap.NewDevelopment()
+	logger := l.Sugar()
+	testCases := []struct {
+		testCaseName        string
+		testCaseDescription string
+		testCase            func()
+	}{
+		{
+			testCaseName: "Test get dataset not found resp",
+			testCase: func() {
+				mockedResponseBody := "not found"
+				mockedResponseStatusCode := http.StatusNotFound
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				dataset, err := ws.GetDataset("", "", "", 1)
+				a.Nil(dataset)
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, mockedResponseBody}, err)
+			},
+		},
+		{
+			testCaseName: "Test get dataset http response is in error",
+			testCase: func() {
+				mockedResponseBody := "error"
+				mockedResponseStatusCode := http.StatusInternalServerError
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				dataset, err := ws.GetDataset("rg", "ws", "dataset", 1)
+				a.Empty(dataset)
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, mockedResponseBody}, err)
+			},
+		},
+		{
+			testCaseName: "Test get dataset http client is in error",
+			testCase: func() {
+				clientErrorMsg := "error"
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(1, "", fmt.Errorf(clientErrorMsg))
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				dataset, err := ws.GetDataset("rg", "ws", "dataset", 1)
+				a.Nil(dataset)
+				a.Equal(clientErrorMsg, err.Error())
+			},
+		},
+		{
+			testCaseName: "Test get dataset success",
+			testCase: func() {
+				mockedResponseBody := string(loadExampleResp("example_resp_get_dataset.json"))
+				mockedResponseStatusCode := http.StatusOK
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doGet", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				dataset, err := ws.GetDataset("rg", "ws", "dataset", 1)
+				a.Nil(err)
+				a.Equal("<id>", dataset.Id)
+				a.Equal(1, len(dataset.FilePaths))
+				a.NotEmpty(dataset.SystemData)
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		logger.Infof("Running test case %q", testCase.testCaseName)
+		testCase.testCase()
+	}
+}
 func getMockedDatasetNames(n int) []string {
 	result := make([]string, n)
 	for i := 0; i < n; i++ {
