@@ -1,6 +1,6 @@
 # Azure ML Go SDK
 
-[![Actions Status](https://github.com/telemaco019/azureml-go-sdk/workflows/main/badge.svg)](https://github.com/telemaco019/azureml-go-sdk/actions)
+[![Actions Status](https://github.com/telemaco019/azureml-go-sdk/workflows/test/badge.svg)](https://github.com/telemaco019/azureml-go-sdk/actions)
 [![codecov](https://codecov.io/gh/telemaco019/azureml-go-sdk/branch/main/graph/badge.svg)](https://codecov.io/gh/telemaco019/azureml-go-sdk)
 
 Go SDK for configuring [Azure Machine Learning](https://azure.microsoft.com/en-us/services/machine-learning/)
@@ -53,5 +53,5 @@ datastores, err := ws.GetDatastores( "rg-name", "workspace-name" )
 ### Get a specific Datastore of a workspace
 
 ```go
-datastore, err := ws.GetDatastores( "rg-name", "workspace-name", "datastore-name" )
+datastore, err := ws.GetDatastore( "rg-name", "workspace-name", "datastore-name" )
 ```

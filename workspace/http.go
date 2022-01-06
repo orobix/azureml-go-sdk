@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	amlApiVersion          = "2021-03-01-preview"
+	amlApiVersion          = "2021-10-01"
 	amlWorkspaceApiBaseUrl = "https://management.azure.com/subscriptions/%s/resourceGroups/%s/providers/Microsoft.MachineLearningServices/workspaces/%s"
 )
 
@@ -53,6 +53,8 @@ func (b *HttpClientBuilder) newClient(resourceGroupName, workspaceName string) H
 type HttpClientAPI interface {
 	doGet(path string) (*http.Response, error)
 
+	doGetWithContext(ctx context.Context, path string) (*http.Response, error)
+
 	doDelete(path string) (*http.Response, error)
 
 	doPut(path string, requestBody interface{}) (*http.Response, error)
@@ -83,6 +85,22 @@ func (c *HttpClient) getWorkspaceApiBaseUrl() string {
 	return fmt.Sprintf(amlWorkspaceApiBaseUrl, c.subscriptionId, c.resourceGroupName, c.workspaceName)
 }
 
+func (c *HttpClient) prepareRequest(req *http.Request) error {
+	jwt, err := c.getJwt()
+	if err != nil {
+		return err
+	}
+
+	// Add required headers
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", jwt))
+
+	// Add required query params
+	q := req.URL.Query()
+	q.Add("api-version", amlApiVersion)
+	req.URL.RawQuery = q.Encode()
+	return nil
+}
+
 func (c *HttpClient) newRequest(method string, url string, requestBody []byte) (*http.Request, error) {
 	var requestBodyReader io.Reader
 	if requestBody == nil {
@@ -96,19 +114,24 @@ func (c *HttpClient) newRequest(method string, url string, requestBody []byte) (
 		return req, err
 	}
 
-	jwt, err := c.getJwt()
+	err = c.prepareRequest(req)
+	return req, err
+}
+
+func (c *HttpClient) newRequestWithContext(ctx context.Context, method string, url string, requestBody []byte) (*http.Request, error) {
+	var requestBodyReader io.Reader
+	if requestBody == nil {
+		requestBodyReader = nil
+	} else {
+		requestBodyReader = bytes.NewBuffer(requestBody)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, url, requestBodyReader)
 	if err != nil {
 		return req, err
 	}
 
-	// Add required headers
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", jwt))
-
-	// Add required query params
-	q := req.URL.Query()
-	q.Add("api-version", amlApiVersion)
-	req.URL.RawQuery = q.Encode()
-
+	err = c.prepareRequest(req)
 	return req, err
 }
 
@@ -118,7 +141,17 @@ func (c *HttpClient) doGet(path string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.logger.Infof("GET > %s", url)
+	c.logger.Infof("GET > %s", request.URL)
+	return c.httpClient.Do(request)
+}
+
+func (c HttpClient) doGetWithContext(ctx context.Context, path string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/%s", c.getWorkspaceApiBaseUrl(), path)
+	request, err := c.newRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	c.logger.Infof("GET > %s", request.URL)
 	return c.httpClient.Do(request)
 }
 
@@ -128,7 +161,7 @@ func (c *HttpClient) doDelete(path string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.logger.Infof("GET > %s", url)
+	c.logger.Infof("DELETE > %s", request.URL)
 	return c.httpClient.Do(request)
 }
 
@@ -146,6 +179,6 @@ func (c *HttpClient) doPut(path string, requestBody interface{}) (*http.Response
 		return nil, err
 	}
 
-	c.logger.Infof("PUT > %s", url)
+	c.logger.Infof("PUT > %s", request.URL)
 	return c.httpClient.Do(request)
 }
