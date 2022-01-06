@@ -798,6 +798,148 @@ func TestWorkspace_GetDatasetNextVersion(t *testing.T) {
 	}
 }
 
+func TestWorkspace_DeleteDataset(t *testing.T) {
+	a := assert.New(t)
+	l, _ := zap.NewDevelopment()
+	logger := l.Sugar()
+	testCases := []struct {
+		testCaseName string
+		testCase     func()
+	}{
+		{
+			"Delete Dataset success",
+			func() {
+				mockedResponseBody := ""
+				mockedResponseStatusCode := http.StatusOK
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doDelete", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				err := ws.DeleteDataset("rg", "ws", "dataset")
+				a.Nil(err)
+			},
+		},
+		{
+			"Delete Dataset 404 not found",
+			func() {
+				mockedResponseBody := ""
+				mockedResponseStatusCode := http.StatusNotFound
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doDelete", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				err := ws.DeleteDataset("rg", "ws", "dataset")
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, ""}, err)
+			},
+		},
+		{
+			"Delete Dataset 500 internal error",
+			func() {
+				mockedResponseBody := ""
+				mockedResponseStatusCode := http.StatusInternalServerError
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doDelete", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				err := ws.DeleteDataset("rg", "ws", "dataset")
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, ""}, err)
+			},
+		},
+		{
+			"Delete Dataset HTTP client error",
+			func() {
+				clientErrorMsg := "error"
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doDelete", mock.Anything).Return(1, "", fmt.Errorf(clientErrorMsg))
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				err := ws.DeleteDataset("rg", "ws", "dataset")
+				a.Equal(clientErrorMsg, err.Error())
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		logger.Infof("Running test case %q", testCase.testCaseName)
+		testCase.testCase()
+	}
+}
+
+func TestWorkspace_DeleteDatasetVersion(t *testing.T) {
+	a := assert.New(t)
+	l, _ := zap.NewDevelopment()
+	logger := l.Sugar()
+	testCases := []struct {
+		testCaseName string
+		testCase     func()
+	}{
+		{
+			"Delete Dataset Version success",
+			func() {
+				mockedResponseBody := ""
+				mockedResponseStatusCode := http.StatusOK
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doDelete", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				err := ws.DeleteDatasetVersion("rg", "ws", "dataset", 1)
+				a.Nil(err)
+			},
+		},
+		{
+			"Delete Dataset Version 404 not found",
+			func() {
+				mockedResponseBody := ""
+				mockedResponseStatusCode := http.StatusNotFound
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doDelete", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				err := ws.DeleteDatasetVersion("rg", "ws", "dataset", 1)
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, ""}, err)
+			},
+		},
+		{
+			"Delete Dataset Version 500 internal error",
+			func() {
+				mockedResponseBody := ""
+				mockedResponseStatusCode := http.StatusInternalServerError
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doDelete", mock.Anything).Return(mockedResponseStatusCode, mockedResponseBody, nil)
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				err := ws.DeleteDatasetVersion("rg", "ws", "dataset", 1)
+				a.Equal(&HttpResponseError{mockedResponseStatusCode, ""}, err)
+			},
+		},
+		{
+			"Delete Dataset Version HTTP client error",
+			func() {
+				clientErrorMsg := "error"
+				mockedHttpClient := new(MockedHttpClient)
+				mockedHttpClient.On("doDelete", mock.Anything).Return(1, "", fmt.Errorf(clientErrorMsg))
+
+				builder := MockedHttpClientBuilder{mockedHttpClient}
+				ws := newWorkspace(builder, l)
+				err := ws.DeleteDatasetVersion("rg", "ws", "dataset", 1)
+				a.Equal(clientErrorMsg, err.Error())
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		logger.Infof("Running test case %q", testCase.testCaseName)
+		testCase.testCase()
+	}
+}
+
 func getMockedDatasetNames(n int) []string {
 	result := make([]string, n)
 	for i := 0; i < n; i++ {

@@ -29,4 +29,10 @@ type WorkspaceAPI interface {
 
 	// CreateOrUpdateDataset Create or update the dataset with the data provided as argument
 	CreateOrUpdateDataset(resourceGroup, workspace string, dataset *workspace.Dataset) (*workspace.Dataset, error)
+
+	// DeleteDataset Delete the dataset (all its versions) with the name provided as argument
+	DeleteDataset(resourceGroup, workspace, datasetName string) error
+
+	// DeleteDatasetVersion Delete the version provided as argument of the dataset with the specified name
+	DeleteDatasetVersion(resourceGroup, workspace, datasetName string, version int) error
 }

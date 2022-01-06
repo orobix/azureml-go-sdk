@@ -338,3 +338,43 @@ func (w *Workspace) GetDatasetNextVersion(resourceGroup, workspace, name string)
 
 	return w.datasetConverter.unmarshalDatasetNextVersion(body), nil
 }
+
+func (w *Workspace) DeleteDataset(resourceGroup, workspace, datasetName string) error {
+	path := fmt.Sprintf("datasets/%s", datasetName)
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doDelete(path)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return &HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	return nil
+}
+
+func (w *Workspace) DeleteDatasetVersion(resourceGroup, workspace, datasetName string, version int) error {
+	path := fmt.Sprintf("datasets/%s/versions/%d", datasetName, version)
+	resp, err := w.httpClientBuilder.newClient(resourceGroup, workspace).doDelete(path)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return &HttpResponseError{resp.StatusCode, string(body)}
+	}
+
+	return nil
+}
