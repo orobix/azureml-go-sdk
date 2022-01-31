@@ -1,7 +1,7 @@
 # Azure ML Go SDK
 
-[![Actions Status](https://github.com/telemaco019/azureml-go-sdk/workflows/test/badge.svg)](https://github.com/telemaco019/azureml-go-sdk/actions)
-[![codecov](https://codecov.io/gh/telemaco019/azureml-go-sdk/branch/main/graph/badge.svg)](https://codecov.io/gh/telemaco019/azureml-go-sdk)
+[![Actions Status](https://github.com/orobix/azureml-go-sdk/workflows/test/badge.svg)](https://github.com/orobix/azureml-go-sdk/actions)
+[![codecov](https://codecov.io/gh/orobix/azureml-go-sdk/branch/main/graph/badge.svg?token=IAWYQ199YY)](https://codecov.io/gh/orobix/azureml-go-sdk)
 
 Go SDK for configuring [Azure Machine Learning](https://azure.microsoft.com/en-us/services/machine-learning/)
 workspaces.
