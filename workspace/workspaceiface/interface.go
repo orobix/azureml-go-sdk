@@ -1,6 +1,6 @@
 package workspaceiface
 
-import "github.com/Telemaco019/azureml-go-sdk/workspace"
+import "github.com/orobix/azureml-go-sdk/workspace"
 
 type WorkspaceAPI interface {
 	// GetDatastores Return the list of datastore of the AML Workspace provided as argument.

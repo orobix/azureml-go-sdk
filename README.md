@@ -16,13 +16,13 @@ Workspaces.**
 Use go get to retrieve the SDK to add it to your GOPATH workspace, or project's Go module dependencies.
 
 ```shell
-go get github.com/Telemaco019/azureml-go-sdk
+go get github.com/orobix/azureml-go-sdk
 ```
 
 To update the SDK use go get -u to retrieve the latest version of the SDK.
 
 ```shell
-go get -u github.com/Telemaco019/azureml-go-sdk
+go get -u github.com/orobix/azureml-go-sdk
 ```
 
 ## Quick Examples
@@ -31,7 +31,7 @@ go get -u github.com/Telemaco019/azureml-go-sdk
 
 ```go
 import (
-  "github.com/Telemaco019/azureml-go-sdk/workspace"
+  "github.com/orobix/azureml-go-sdk/workspace"
 )
 
 config := workspace.Config{
