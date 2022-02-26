@@ -1,4 +1,4 @@
-module github.com/Telemaco019/azureml-go-sdk
+module github.com/orobix/azureml-go-sdk
 
 go 1.17
 
