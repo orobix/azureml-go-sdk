@@ -55,3 +55,8 @@ datastores, err := ws.GetDatastores( "rg-name", "workspace-name" )
 ```go
 datastore, err := ws.GetDatastore( "rg-name", "workspace-name", "datastore-name" )
 ```
+
+## License
+This project is licensed under the MIT License.
+
+Copyright (c) 2021 Michele Zanotti.
