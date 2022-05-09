@@ -20,6 +20,8 @@ type WriteDatastoreSchema struct {
 	StorageAccountName   string                           `json:"accountName,omitempty"`
 	StorageContainerName string                           `json:"containerName,omitempty"`
 	Credentials          *WriteDatastoreCredentialsSchema `json:"credentials,omitempty"`
+	Endpoint             string                           `json:"endpoint"`
+	Protocol             string                           `json:"protocol"`
 }
 
 type WriteDatastoreSchemaProperties struct {

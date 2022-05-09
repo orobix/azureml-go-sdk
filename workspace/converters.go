@@ -136,6 +136,8 @@ func toWriteDatastoreSchema(datastore *Datastore) *SchemaWrapper {
 				StorageAccountName:   datastore.StorageAccountName,
 				StorageContainerName: datastore.StorageContainerName,
 				Credentials:          credentials,
+				Endpoint:             "core.windows.net",
+				Protocol:             "https",
 			},
 		},
 	}

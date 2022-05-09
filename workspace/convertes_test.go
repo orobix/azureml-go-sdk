@@ -94,7 +94,11 @@ func TestToWriteDatastoreSchemaEmptyDatastore(t *testing.T) {
 	a := assert.New(t)
 	datastore := Datastore{}
 	writeSchema := toWriteDatastoreSchema(&datastore)
-	a.Equal(&SchemaWrapper{WriteDatastoreSchemaProperties{Contents: WriteDatastoreSchema{}}}, writeSchema)
+	expected := WriteDatastoreSchemaProperties{Contents: WriteDatastoreSchema{
+		Protocol: "https",
+		Endpoint: "core.windows.net",
+	}}
+	a.Equal(&SchemaWrapper{expected}, writeSchema)
 }
 
 func TestToWriteDatastoreSchema(t *testing.T) {
@@ -122,6 +126,8 @@ func TestToWriteDatastoreSchema(t *testing.T) {
 					TenantId:    datastore.Auth.TenantId,
 					SqlUserName: datastore.Auth.SqlUserName,
 				},
+				Protocol: "https",
+				Endpoint: "core.windows.net",
 			},
 		},
 	}
@@ -151,6 +157,8 @@ func TestToWriteDatastoreSchema_NilAuth(t *testing.T) {
 				StorageAccountName:   datastore.StorageAccountName,
 				StorageContainerName: datastore.StorageContainerName,
 				Credentials:          nil,
+				Endpoint:             "core.windows.net",
+				Protocol:             "https",
 			},
 		},
 	}
